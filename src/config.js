@@ -17,12 +17,9 @@ export const APP = {
 
 // Comptes B2B partenaires — accès illimité gratuit
 export const B2B_FREE_ACCOUNTS = [
-  "winwin@winwinfinance.ch",
-  "olivier@winwinfinance.ch",
+  "contact@winwin.swiss",
   "admin@juraitax.ch",
 ];
-
-// Tarifs
 export const PRICING = {
   particulier: 49,
   particulierLaunch: 29,

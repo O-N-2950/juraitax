@@ -202,7 +202,7 @@ export function B2BLogin() {
   const [client, setClient] = useState({ nom:"", prenom:"", noContribuable:"" });
   const [step, setStep] = useState("login"); // login | client
 
-  const FREE_ACCOUNTS = ["winwin@winwinfinance.ch","olivier@winwinfinance.ch","admin@juraitax.ch"];
+  const FREE_ACCOUNTS = ["contact@winwin.swiss","admin@juraitax.ch"];
   const isFree = FREE_ACCOUNTS.includes(email.toLowerCase());
 
   const handleLogin = () => {
