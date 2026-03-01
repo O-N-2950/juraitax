@@ -367,6 +367,10 @@ export function ChecklistScreen() {
 
   // ════════════════════════════════════════════════════════════════════
   // RENDER
+  // ── Détection iOS ─────────────────────────────────────────────────
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
+
   // ════════════════════════════════════════════════════════════════════
   return (
     <div style={{ minHeight:"100vh", background:S.bg, paddingBottom:"calc(140px + env(safe-area-inset-bottom,0px))" }}>
@@ -410,51 +414,121 @@ export function ChecklistScreen() {
 
       <div style={{ maxWidth:680, margin:"0 auto", padding:"0 20px" }}>
 
-        {/* ── DROP ZONE GLOBALE ──────────────────────────────── */}
+        {/* ── ZONE UPLOAD — adaptée à la plateforme ─────────── */}
         <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
           style={{ marginBottom:14, padding:"20px 16px", borderRadius:14,
             border:`2px dashed ${isDragging ? S.gold : S.border}`,
             background: isDragging ? `rgba(201,168,76,0.06)` : "transparent",
             textAlign:"center", transition:"all 0.2s" }}>
+
           <div style={{ fontSize:28, marginBottom:6 }}>📂</div>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:19, color:S.cream,
             fontWeight:300, marginBottom:4 }}>
             {L({ fr:"Tous vos documents ici", de:"Alle Dokumente hier", en:"All documents here" })}
           </div>
-          <div style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", marginBottom:14 }}>
-            {L({ fr:"Photos ou PDF — tAIx classe automatiquement chaque document",
-                  de:"Fotos oder PDF — tAIx klassifiziert automatisch",
-                  en:"Photos or PDF — tAIx auto-classifies each document" })}
-          </div>
 
-          {/* 3 boutons distincts — chacun avec son inputId unique */}
-          <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+          {/* ══ iOS — caméra séquentielle avec tip clair ══ */}
+          {isIOS && (
+            <>
+              {/* Tip iOS */}
+              <div style={{ margin:"8px auto 14px", maxWidth:340, padding:"10px 14px",
+                borderRadius:10, background:`rgba(201,168,76,0.08)`,
+                border:`1px solid rgba(201,168,76,0.3)` }}>
+                <div style={{ fontSize:12, color:S.gold, fontFamily:"'Outfit',sans-serif",
+                  fontWeight:700, marginBottom:4 }}>
+                  📱 {L({fr:"Sur iPhone — comment ajouter vos photos",de:"Auf iPhone — Fotos hinzufügen",en:"On iPhone — how to add photos"})}
+                </div>
+                <div style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", lineHeight:1.5 }}>
+                  {L({
+                    fr:"Tapez 📷 → prenez la photo → tapez à nouveau 📷 pour la suivante. Répétez pour chaque document. Ou photographiez d'abord avec l'app Appareil Photo, puis tapez 🖼 Galerie.",
+                    de:"Tippen Sie 📷 → Foto aufnehmen → erneut 📷 für das nächste. Oder zuerst mit der Kamera-App fotografieren, dann 🖼 Galerie.",
+                    en:"Tap 📷 → take photo → tap 📷 again for next one. Or photograph first with Camera app, then tap 🖼 Gallery."
+                  })}
+                </div>
+              </div>
 
-            {/* 📷 Caméra — UN seul fichier par tap (iOS / Android) */}
-            {/* capture="environment" + key rotation → iOS peut retapper immédiatement */}
-            <UploadBtn inputId="cam_global" capture="environment" accept="image/*"
-              style={{ padding:"12px 18px", borderRadius:11,
-                background:`linear-gradient(135deg,${S.gold},#D4B55A)`,
-                color:S.bg, fontFamily:"'Outfit',sans-serif", fontSize:13, fontWeight:700, gap:6 }}>
-              📷 {L({ fr:"Photo", de:"Foto", en:"Photo" })}
-            </UploadBtn>
+              <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+                {/* Bouton caméra principal iOS — grand, doré, bien visible */}
+                <UploadBtn inputId="cam_global" capture="environment" accept="image/*"
+                  style={{ padding:"16px 28px", borderRadius:12,
+                    background:`linear-gradient(135deg,${S.gold},#D4B55A)`,
+                    color:S.bg, fontFamily:"'Outfit',sans-serif", fontSize:15,
+                    fontWeight:700, gap:8, boxShadow:`0 6px 24px rgba(201,168,76,0.35)` }}>
+                  📷 {L({ fr:"Prendre une photo", de:"Foto aufnehmen", en:"Take a photo" })}
+                </UploadBtn>
 
-            {/* 🖼 Galerie — multiple sans capture → sélection multiple iOS/Android */}
-            <UploadBtn inputId="gal_global" accept="image/*" multiple
-              style={{ padding:"12px 18px", borderRadius:11, background:S.card,
-                border:`1px solid ${S.borderHi}`, color:S.cream,
-                fontFamily:"'Outfit',sans-serif", fontSize:13, gap:6 }}>
-              🖼 {L({ fr:"Galerie", de:"Galerie", en:"Gallery" })}
-            </UploadBtn>
+                {/* Galerie iOS — secondaire, pour ceux qui ont déjà pris leurs photos */}
+                <UploadBtn inputId="gal_global" accept="image/*" multiple
+                  style={{ padding:"16px 20px", borderRadius:12, background:S.card,
+                    border:`1px solid ${S.borderHi}`, color:S.cream,
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, gap:6 }}>
+                  🖼 {L({ fr:"Galerie", de:"Galerie", en:"Gallery" })}
+                </UploadBtn>
 
-            {/* 📎 PDF + fichiers — desktop principalement */}
-            <UploadBtn inputId="pdf_global" accept="image/*,application/pdf" multiple
-              style={{ padding:"12px 18px", borderRadius:11, background:S.card,
-                border:`1px solid ${S.border}`, color:S.textDim,
-                fontFamily:"'Outfit',sans-serif", fontSize:13, gap:6 }}>
-              📎 PDF
-            </UploadBtn>
-          </div>
+                {/* PDF */}
+                <UploadBtn inputId="pdf_global" accept="application/pdf" multiple
+                  style={{ padding:"16px 16px", borderRadius:12, background:S.card,
+                    border:`1px solid ${S.border}`, color:S.textDim,
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, gap:6 }}>
+                  📎 PDF
+                </UploadBtn>
+              </div>
+
+              {/* Compteur en temps réel si des photos sont en attente — encourage à continuer */}
+              {pendingCount > 0 && (
+                <div style={{ marginTop:14, padding:"10px 16px", borderRadius:10,
+                  background:`rgba(52,211,153,0.08)`, border:`1px solid rgba(52,211,153,0.25)`,
+                  display:"inline-flex", alignItems:"center", gap:8 }}>
+                  <span style={{ fontSize:20 }}>✅</span>
+                  <span style={{ fontSize:14, fontWeight:700, color:S.green,
+                    fontFamily:"'Outfit',sans-serif" }}>
+                    {pendingCount} photo{pendingCount>1?"s":""} — {L({fr:"continuez ou analysez",de:"weiter oder analysieren",en:"keep going or analyse"})}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ══ Android & Desktop — sélection multiple ══ */}
+          {!isIOS && (
+            <>
+              <div style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", marginBottom:14 }}>
+                {isAndroid
+                  ? L({fr:"Sélectionnez toutes vos photos en une fois depuis la galerie",de:"Alle Fotos auf einmal aus der Galerie wählen",en:"Select all your photos at once from gallery"})
+                  : L({fr:"Glissez vos fichiers ici ou sélectionnez-les",de:"Dateien hierher ziehen oder auswählen",en:"Drag files here or select them"})}
+              </div>
+              <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+                {/* Galerie multiple — bouton principal sur Android */}
+                <UploadBtn inputId="gal_global" accept="image/*" multiple
+                  style={{ padding:"14px 24px", borderRadius:12,
+                    background: isAndroid ? `linear-gradient(135deg,${S.gold},#D4B55A)` : S.card,
+                    border: isAndroid ? "none" : `1px solid ${S.borderHi}`,
+                    color: isAndroid ? S.bg : S.cream,
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700, gap:8,
+                    boxShadow: isAndroid ? `0 6px 24px rgba(201,168,76,0.35)` : "none" }}>
+                  🖼 {L({ fr:"Sélectionner photos", de:"Fotos auswählen", en:"Select photos" })}
+                </UploadBtn>
+
+                {/* Caméra */}
+                <UploadBtn inputId="cam_global" capture="environment" accept="image/*"
+                  style={{ padding:"14px 20px", borderRadius:12,
+                    background: !isAndroid ? `linear-gradient(135deg,${S.gold},#D4B55A)` : S.card,
+                    border: !isAndroid ? "none" : `1px solid ${S.border}`,
+                    color: !isAndroid ? S.bg : S.textDim,
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700, gap:6 }}>
+                  📷 {L({ fr:"Photo", de:"Foto", en:"Photo" })}
+                </UploadBtn>
+
+                {/* PDF */}
+                <UploadBtn inputId="pdf_global" accept="image/*,application/pdf" multiple
+                  style={{ padding:"14px 16px", borderRadius:12, background:S.card,
+                    border:`1px solid ${S.border}`, color:S.textDim,
+                    fontFamily:"'Outfit',sans-serif", fontSize:13, gap:6 }}>
+                  📎 PDF
+                </UploadBtn>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── ZONE EN ATTENTE ─────────────────────────────────── */}
