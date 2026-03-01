@@ -78,6 +78,23 @@ export const GlobalStyles = () => (
     .btn-primary:active { transform: translateY(0); }
     .card-hover:hover { border-color: ${T.borderHi}; background: ${T.cardHi}; }
     .card-sel { border-color: ${T.gold} !important; background: ${T.goldGlow} !important; }
+    /* ── MOBILE RESPONSIVE ─────────────────────── */
+    @media (max-width: 480px) {
+      body { touch-action: pan-y; }
+      input, select, textarea { font-size: 16px !important; } /* prevent zoom iOS */
+      button { min-height: 44px; } /* Apple HIG touch target */
+    }
+    @media (max-width: 640px) {
+      .resp-grid-2 { grid-template-columns: 1fr !important; }
+      .resp-stack  { flex-direction: column !important; }
+      .resp-full   { width: 100% !important; min-width: unset !important; }
+    }
+    /* Safe area for notched phones */
+    .safe-bottom { padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+    /* PWA-feel: hide address bar on scroll */
+    html { height: -webkit-fill-available; }
+    body { min-height: -webkit-fill-available; }
+
   `}</style>
 );
 
