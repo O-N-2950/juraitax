@@ -512,7 +512,7 @@ export function Result() {
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:58, color:S.cream, fontWeight:300, lineHeight:1 }}>
             <AnimatedAmount target={r?.impotTotal||0} color={S.cream} duration={2000} />
           </div>
-          <SavingsBadge lang={lang} />
+          <SavingsBadge lang={lang} isB2B={isB2B} />
           <div style={{ fontSize:12, color:S.textDim, marginTop:8, fontFamily:"'Outfit',sans-serif" }}>{t("result_title")}</div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginTop:20 }}>
