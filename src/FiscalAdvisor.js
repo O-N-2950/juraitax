@@ -8,14 +8,41 @@
 
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
+// ── Appel base de connaissances tAIx ─────────────────────────────────
+const KNOWLEDGE_URL = import.meta.env.VITE_KNOWLEDGE_URL || "";
+const KNOWLEDGE_KEY = import.meta.env.VITE_KNOWLEDGE_KEY || "";
+
+async function queryKnowledge(question, canton, profile) {
+  if (!KNOWLEDGE_URL) return null;
+  try {
+    const r = await fetch(`${KNOWLEDGE_URL}/knowledge/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question, canton, year: 2025, profile,
+        api_key: KNOWLEDGE_KEY,
+      }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data.confidence > 0.35 ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Prompt conseiller fiscal IA ──────────────────────────────────────
-function buildPrompt(donneesOCR, lang) {
+function buildPrompt(donneesOCR, lang, knowledgeContext = null) {
   const langLabel = { fr:"français", de:"allemand", it:"italien", pt:"portugais", es:"espagnol", en:"anglais" }[lang] || "français";
+
+  const knowledgeSection = knowledgeContext
+    ? `\n\n=== BASE DE CONNAISSANCES FISCALES tAIx ===\n${knowledgeContext}\n=== FIN BASE DE CONNAISSANCES ===\n`
+    : "";
 
   return `Tu es un conseiller fiscal suisse expert, bienveillant et précis.
 Tu viens d'analyser les documents d'un contribuable suisse. Voici les données extraites :
 
-${JSON.stringify(donneesOCR, null, 2)}
+${JSON.stringify(donneesOCR, null, 2)}${knowledgeSection}
 
 En te basant UNIQUEMENT sur ces données réelles (pas de suppositions génériques) :
 
@@ -67,17 +94,35 @@ Réponds en ${langLabel}. JSON uniquement, aucun texte avant ou après.`;
 
 // ── Appel principal ──────────────────────────────────────────────────
 export async function genererQuestionsIA(donneesOCR, storeData, lang = "fr") {
-  // Fusionne données OCR + données déjà dans le store
   const toutesLesDonnees = { ...storeData, ...donneesOCR };
-
-  // Nettoie les champs vides pour ne pas polluer le prompt
   const donneesPropres = Object.fromEntries(
     Object.entries(toutesLesDonnees)
       .filter(([, v]) => v !== null && v !== "" && v !== 0 && v !== undefined)
   );
 
+  // Détecter canton et profil pour enrichir la requête knowledge
+  const canton = donneesPropres.canton || donneesPropres._canton || null;
+  const profile = {
+    type_profil: (donneesPropres.revenus_avs || donneesPropres.rev_avs) ? "retraite" :
+                 (donneesPropres.revenus_salaire || donneesPropres.rev_salaire) ? "salarie" : "inconnu",
+    age: donneesPropres.naissance
+      ? new Date().getFullYear() - parseInt((donneesPropres.naissance || "").split(/[-/]/)[0])
+      : null,
+  };
+
+  // Interroger la base de connaissances tAIx en parallèle
+  let knowledgeContext = null;
+  if (KNOWLEDGE_URL) {
+    const kResult = await queryKnowledge(
+      `Optimisations fiscales pour ${profile.type_profil} ${profile.age ? `${profile.age} ans` : ""} ${canton ? `canton ${canton}` : ""}`,
+      canton, profile
+    );
+    if (kResult?.reponse) {
+      knowledgeContext = kResult.reponse;
+    }
+  }
+
   if (!ANTHROPIC_API_KEY) {
-    console.warn("Pas de clé API — questions génériques");
     return getQuestionsSecours(donneesPropres, lang);
   }
 
@@ -88,7 +133,7 @@ export async function genererQuestionsIA(donneesOCR, storeData, lang = "fr") {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 2000,
-        messages: [{ role: "user", content: buildPrompt(donneesPropres, lang) }],
+        messages: [{ role: "user", content: buildPrompt(donneesPropres, lang, knowledgeContext) }],
       }),
     });
 
@@ -99,9 +144,8 @@ export async function genererQuestionsIA(donneesOCR, storeData, lang = "fr") {
     const clean  = text.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(clean);
 
-    // Validation minimale
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
-      throw new Error("Réponse invalide — pas de questions");
+      throw new Error("Réponse invalide");
     }
 
     return parsed;
