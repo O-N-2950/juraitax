@@ -1,91 +1,124 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  JurAI Tax / tAIx — Stripe Payment Service
-//  CHF 49 — Déclaration fiscale / CHF 49 Abonnement annuel
-//  Mars 2026 — PEP's Swiss SA
-//  NOTE: Clé publiable Stripe (pk_live_...) requise pour le frontend.
-//        La clé secrète (sk_live_...) est UNIQUEMENT côté backend.
+//  CHF 49 — Déclaration fiscale / CHF 49/an Abonnement annuel
+//  Mars 2026 — PEP's Swiss SA · taix.ch
+//  NOTE: Clé publiable Stripe (pk_live_...) côté frontend UNIQUEMENT.
+//        La clé secrète (sk_live_...) reste EXCLUSIVEMENT côté backend.
 // ═══════════════════════════════════════════════════════════════════════
 
 import { loadStripe } from "@stripe/stripe-js";
 
-// Clé PUBLIABLE (pk_live_...) — à récupérer sur dashboard.stripe.com
-// PAS la clé secrète sk_live_ qui doit rester côté serveur
 const STRIPE_PK = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 
 let stripePromise = null;
 function getStripe() {
-  if (!stripePromise && STRIPE_PK) {
-    stripePromise = loadStripe(STRIPE_PK);
-  }
+  if (!stripePromise && STRIPE_PK) stripePromise = loadStripe(STRIPE_PK);
   return stripePromise;
 }
 
-// ── Métadonnées Stripe (pour identifier l'origine dans le dashboard) ─
-function buildMetadata(data, mode = "b2c_declaration") {
+// ── MÉTADONNÉES COMPLÈTES ────────────────────────────────────────────
+// Transmises à Stripe pour identifier chaque paiement dans le dashboard.
+// Visibles dans: dashboard.stripe.com → Paiements → Détail → Métadonnées
+function buildMetadata(data = {}, mode = "b2c_declaration") {
   return {
-    app: "taix.ch",
-    mode,
-    nom: `${data.prenom || ""} ${data.nom || ""}`.trim(),
-    commune: data.commune || "",
-    langue: data.lang || "fr",
-    canton: data.canton || "JU",
-    annee: "2025",
-    source: window.location.hostname,
+    // Identification produit
+    app:              "taix.ch",
+    produit:          mode === "abonnement" ? "Abonnement tAIx CHF 49/an" : "Déclaration fiscale tAIx CHF 49",
+    mode,                                        // b2c_declaration | abonnement | b2b_solo | b2b_cabinet
+
+    // Client
+    client_nom:       `${data.prenom || ""} ${data.nom || ""}`.trim() || "—",
+    client_commune:   data.commune   || "—",
+    client_canton:    data.canton    || "JU",
+    no_contribuable:  data.no_contribuable || "—",
+
+    // Session
+    langue:           data.lang     || "fr",
+    annee_di:         "2025",
+    domaine_source:   typeof window !== "undefined" ? window.location.hostname : "taix.ch",
+    timestamp:        new Date().toISOString(),
+
+    // Partenaire WIN WIN (si applicable)
+    partenaire:       data.b2bFirm  || "—",
+    finma_ref:        "F01042365",              // WIN WIN Finance Group SARL
+
+    // Conformité LPD
+    hebergement:      "Infomaniak · Genève · Suisse",
+    loi_applicable:   "LPD (Loi fédérale sur la protection des données)",
   };
 }
 
-// ── Paiement CHF 49 — Déclaration (Stripe Checkout) ──────────────────
-// Nécessite backend pour créer session. En attendant: Payment Link Stripe.
+// ── PAIEMENT CHF 49 — Déclaration ────────────────────────────────────
 export async function payerDeclaration({ data, onSuccess, onCancel }) {
-  // 🟡 TEMPORAIRE: Payment Link Stripe (créer sur dashboard.stripe.com)
-  // → Produit "Déclaration fiscale tAIx 2025" CHF 49
-  // → Activer "Collecter les adresses e-mail"
-  // → Ajouter métadonnées: app=taix.ch
   const PAYMENT_LINK = import.meta.env.VITE_STRIPE_PAYMENT_LINK_49;
 
   if (PAYMENT_LINK) {
-    // Ajouter paramètres client dans l'URL
+    const ref = `di_${data.no_contribuable || "anon"}_${Date.now()}`;
     const params = new URLSearchParams({
-      prefilled_email: data.email || "",
-      client_reference_id: `${data.no_contribuable || ""}_${Date.now()}`,
+      prefilled_email:      data.email || "",
+      client_reference_id:  ref,
+      // Passer métadonnées encodées dans l'URL (max 500 chars)
+      metadata_app:         "taix.ch",
+      metadata_produit:     "Declaration_CHF49",
+      metadata_canton:      data.canton || "JU",
+      metadata_langue:      data.lang   || "fr",
+      metadata_annee:       "2025",
+      metadata_hebergement: "Infomaniak_Suisse",
     });
+    // Stocker localement pour retrouver après retour Stripe
+    try {
+      sessionStorage.setItem("taix_pending_payment", JSON.stringify({
+        ref, mode: "b2c_declaration", ...buildMetadata(data, "b2c_declaration")
+      }));
+    } catch {}
     window.location.href = `${PAYMENT_LINK}?${params}`;
     return;
   }
 
-  // Fallback si pas de Payment Link configuré
-  console.warn("VITE_STRIPE_PAYMENT_LINK_49 manquant — mode développement");
-  onSuccess?.(); // Bypass pour développement
+  // Dev: bypass paiement
+  console.warn("[tAIx] VITE_STRIPE_PAYMENT_LINK_49 manquant — bypass dev");
+  onSuccess?.();
 }
 
-// ── Paiement CHF 49 — Abonnement annuel ──────────────────────────────
-export async function payerAbonnement({ email, data, onSuccess }) {
+// ── PAIEMENT CHF 49/AN — Abonnement ──────────────────────────────────
+export async function payerAbonnement({ email, nom, canton, lang, onSuccess }) {
   const PAYMENT_LINK_SUB = import.meta.env.VITE_STRIPE_PAYMENT_LINK_SUB;
 
   if (PAYMENT_LINK_SUB) {
+    const ref = `sub_${(email || "").replace("@","_at_")}_${Date.now()}`;
     const params = new URLSearchParams({
-      prefilled_email: email || "",
-      client_reference_id: `sub_${email}_${Date.now()}`,
+      prefilled_email:      email || "",
+      client_reference_id:  ref,
+      metadata_app:         "taix.ch",
+      metadata_produit:     "Abonnement_CHF49_an",
+      metadata_canton:      canton || "JU",
+      metadata_langue:      lang   || "fr",
+      metadata_type:        "abonnement_annuel",
+      metadata_hebergement: "Infomaniak_Suisse",
     });
+    try {
+      sessionStorage.setItem("taix_pending_sub", JSON.stringify({
+        ref, email, nom, canton, lang, mode: "abonnement"
+      }));
+    } catch {}
     window.location.href = `${PAYMENT_LINK_SUB}?${params}`;
     return;
   }
 
-  // Dev bypass
-  console.warn("VITE_STRIPE_PAYMENT_LINK_SUB manquant — mode développement");
+  console.warn("[tAIx] VITE_STRIPE_PAYMENT_LINK_SUB manquant — bypass dev");
   onSuccess?.();
 }
 
-// ── Statut paiement (retour depuis Stripe) ───────────────────────────
+// ── RETOUR DEPUIS STRIPE ─────────────────────────────────────────────
 export function checkStripeReturn() {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("payment_status") || params.get("redirect_status");
-  const sessionId = params.get("session_id");
 
   if (status === "succeeded" || status === "paid") {
-    // Nettoyer URL
     window.history.replaceState({}, "", window.location.pathname);
-    return { success: true, sessionId };
+    let pending = null;
+    try { pending = JSON.parse(sessionStorage.getItem("taix_pending_payment") || "null"); } catch {}
+    return { success: true, pending };
   }
   if (status === "canceled") {
     window.history.replaceState({}, "", window.location.pathname);
@@ -94,4 +127,4 @@ export function checkStripeReturn() {
   return null;
 }
 
-export { getStripe };
+export { getStripe, buildMetadata };
