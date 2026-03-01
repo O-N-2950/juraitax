@@ -185,3 +185,34 @@ Avantages : photos conservées dans la pellicule, possibilité de relire avant e
 - 35 photos en mémoire = 35 × 300KB = **10MB** (au lieu de 175MB)
 - Aucune limite de nombre de photos
 - Toast `⏳ 35 photos en cours…` pendant compression, puis `📷 35 photos ajoutées`
+
+---
+
+## 🔗 VISION COMPLÈTE — tAIx + Soluris
+
+### Architecture cible
+```
+Photo → Claude OCR universel → données extraites
+                ↓
+        Soluris RAG interrogé (base juridique complète)
+                ↓
+        Claude génère conseils + CITE les sources exactes
+                ↓
+"CHF 2'700 déductibles (Art. 33 al. 1 let. h LIFD · seuil 5% revenu net)"
+```
+
+### Ce que Soluris doit contenir
+**Fédéral :** LIFD, LHID, LPP/OPP2/OPP3, LAVS/LAI, circulaires AFC 1-45+, jurisprudence ATF fiscal
+**Cantonal :** 26 lois fiscales (scraper existant), barèmes 2025 tous cantons, multiplicateurs communaux
+**Diplômes :** Expert fiscal fédéral, Fiduciaire fédéral, Brevet comptable, Commentaire Suter-Koch-Locher
+
+### État Soluris (1er mars 2026)
+- Scraper 26 cantons : ✅ codé, 🔄 scraping en cours
+- Endpoint /api/fiscal-query : ✅ codé et prêt
+- pgvector Railway : à vérifier
+- Données AFC/ATF/diplômes : à scraper
+- Connexion tAIx ↔ Soluris : à faire (30 min dès que Soluris répond)
+
+### Différenciateur concurrentiel
+Aucun concurrent ne combine OCR universel + RAG juridique vérifié + conseils IA personnalisés.
+Ni en Suisse, ni ailleurs. Chaque conseil sera cité article par article.

@@ -114,3 +114,33 @@ URL : https://juraitax-app-production-f257.up.railway.app
 - [x] **Fix compression immédiate** : `addFiles` est maintenant async — chaque photo compressée (canvas 1800px/JPEG82%) dès la sélection via `Promise.all`. 35 photos = 10MB en mémoire au lieu de 175MB. Aucune limite de nombre de photos.
 - [x] **Pellicule iPhone** : limitation Apple — le bouton 📷 en web app ne sauvegarde pas dans la pellicule. Solution documentée : photographier avec l'app Appareil Photo native → puis bouton 🖼 Galerie dans tAIx pour importer tout d'un coup.
 - [x] **À communiquer aux clients** : "Prenez vos photos avec l'app Appareil Photo, puis importez via Galerie"
+
+---
+
+## 🔴 PRIORITÉ ABSOLUE — Connexion Soluris (dès scraping terminé)
+
+### Étape 1 — Vérifier Soluris opérationnel
+- [ ] Attendre fin scraping 26 cantons (en cours)
+- [ ] Vérifier pgvector actif : Railway → Soluris → Variables → DATABASE_URL
+- [ ] Tester : GET https://[soluris-url]/api/fiscal-query/ping?internal_key=TAIX_INTERNAL_KEY
+- [ ] Si ping OK → passer à l'étape 2
+
+### Étape 2 — Scraper les sources manquantes (session Soluris dédiée)
+- [ ] Circulaires AFC (https://www.estv.admin.ch/estv/fr/home/direkte-bundessteuer/kreisschreiben.html)
+- [ ] Jurisprudence ATF fiscal (https://www.bger.ch/ext/eurospider/live/fr/php/aza/http/index.php)
+- [ ] Barèmes 2025 tous cantons (PDF officiels cantons)
+- [ ] Référentiel diplôme fédéral expert fiscal (ODEC/XPERT.CH)
+- [ ] Référentiel diplôme fiduciaire fédéral
+- [ ] Brevet fédéral comptable
+- [ ] Commentaire Suter-Koch-Locher (si accessible légalement)
+
+### Étape 3 — Connecter tAIx → Soluris (30 min)
+- [ ] Ajouter variable Railway tAIx : SOLURIS_URL + TAIX_INTERNAL_KEY
+- [ ] Dans FiscalAdvisor.js : avant génération questions → appel Soluris
+- [ ] Dans prompt Claude : injecter les sources Soluris retournées
+- [ ] Résultat : chaque conseil cite "Art. 33 al. 1 LIFD · ATF 148 II 121"
+
+### Étape 4 — Affichage sources dans tAIx
+- [ ] Badge "Sources juridiques" sous chaque conseil
+- [ ] Lien cliquable vers l'article de loi officiel
+- [ ] Score de confiance affiché (ex: ✓ 94% pertinence)
