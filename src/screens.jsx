@@ -101,7 +101,7 @@ export function Welcome() {
 
         {/* CTA */}
         <div className="fu3">
-          <Btn full onClick={() => setScreen("form")} style={{ padding:"18px", fontSize:17, borderRadius:14, animation:"glow 3s ease-in-out infinite", background:`linear-gradient(135deg,${accent},${accent}CC)` }}>
+          <Btn full onClick={() => setScreen("checklist")} style={{ padding:"18px", fontSize:17, borderRadius:14, animation:"glow 3s ease-in-out infinite", background:`linear-gradient(135deg,${accent},${accent}CC)` }}>
             {t("hero_cta")} — CHF {prix}
           </Btn>
           <div style={{ textAlign:"center", marginTop:10, fontSize:11, color:S.muted, fontFamily:"'Outfit',sans-serif" }}>
