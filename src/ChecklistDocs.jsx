@@ -1,9 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  JurAI Tax — Checklist Documents A4 · Écran "Préparez vos documents"
-//  UX Mobile-first · Camera capture · 7 langues · Mars 2026
+//  tAIx — ChecklistDocs.jsx v4
+//  UX "Tout en vrac" : drop zone globale + identification automatique
+//  Fallback identité inline si OCR ne trouve pas le client
+//  Multi-photos optimisé mobile + tablet + desktop
+//  Mars 2026 — PEP's Swiss SA
 // ═══════════════════════════════════════════════════════════════════════
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useStore, SOURCE } from "./store";
 import { ocrDocument, applyOCRToStore } from "./ocr";
 import { genererQuestionsIA } from "./FiscalAdvisor";
@@ -12,128 +15,90 @@ import { GlobalStyles, T as S } from "./ui";
 import LangSelector from "./LangSelector";
 import { useT } from "./i18n";
 
-// ── LISTE COMPLÈTE DES DOCUMENTS ──────────────────────────────────────
-const DOCS = (t) => ([
-  {
-    id: "identity",
-    icon: "👤",
-    category: { fr:"Identité & Situation", de:"Identität & Situation", it:"Identità & Situazione", pt:"Identidade & Situação", es:"Identidad & Situación", en:"Identity & Situation", uk:"Особистість та ситуація" },
-    docs: [
-      { id:"di_prev",    required: true,  icon:"📋", label:{ fr:"Déclaration d'impôt 2024 (N-1)", de:"Steuererklärung 2024 (N-1)", it:"Dichiarazione 2024 (N-1)", pt:"Declaração 2024 (N-1)", es:"Declaración 2024 (N-1)", en:"2024 tax return (N-1)", uk:"Декларація 2024 (N-1)" }, hint:{ fr:"Optionnel — l'IA importe uniquement votre identité", de:"Optional — KI importiert nur Ihre Identität", it:"Facoltativo — l'IA importa solo la vostra identità", pt:"Opcional — a IA importa apenas a sua identidade", es:"Opcional — la IA importa solo su identidad", en:"Optional — AI imports your identity only", uk:"Необов'язково — ШІ імпортує лише вашу особистість" }, required: false, camera: true },
-      { id:"permis",     required: false, icon:"🪪", label:{ fr:"Carte d'identité / Permis de séjour", de:"Ausweis / Aufenthaltsbewilligung", it:"Carta d'identità / Permesso di soggiorno", pt:"Bilhete de identidade / Autorização de residência", es:"DNI / Permiso de residencia", en:"ID card / Residence permit", uk:"Посвідчення особи / Дозвіл на проживання" }, hint:{ fr:"Utile si votre commune ou confession ont changé", de:"Nützlich bei Änderung von Gemeinde oder Konfession", it:"Utile se la vostra comune o confessione è cambiata", pt:"Útil se o seu município ou confissão mudou", es:"Útil si su municipio o confesión ha cambiado", en:"Useful if your municipality or denomination changed", uk:"Корисно якщо змінилися муніципалітет або конфесія" }, camera: true },
-    ]
-  },
-  {
-    id: "revenus",
-    icon: "💰",
-    category: { fr:"Revenus", de:"Einkommen", it:"Redditi", pt:"Rendimentos", es:"Ingresos", en:"Income", uk:"Доходи" },
-    docs: [
-      { id:"cert_sal",   required: true,  icon:"📄", label:{ fr:"Certificat de salaire 2025", de:"Lohnausweis 2025", it:"Certificato di salario 2025", pt:"Certificado de salário 2025", es:"Certificado de salario 2025", en:"2025 salary certificate", uk:"Сертифікат зарплати 2025" }, hint:{ fr:"Remis par votre employeur (formulaire officiel)", de:"Von Ihrem Arbeitgeber ausgestellt (offizielles Formular)", it:"Rilasciato dal vostro datore di lavoro (modulo ufficiale)", pt:"Emitido pelo seu empregador (formulário oficial)", es:"Emitido por su empleador (formulario oficial)", en:"Issued by your employer (official form)", uk:"Виданий вашим роботодавцем (офіційна форма)" }, camera: true },
-      { id:"avs",        required: false, icon:"🏛️", label:{ fr:"Attestation rente AVS/AI (OCAS)", de:"AHV/IV-Rentenbestätigung (AKOS)", it:"Attestato rendita AVS/AI (OCAS)", pt:"Comprovativo renda AVS/AI (OCAS)", es:"Certificado renta AVS/AI (OCAS)", en:"AVS/AI pension statement (OCAS)", uk:"Підтвердження пенсії AVS/AI (OCAS)" }, hint:{ fr:"Si vous percevez une rente AVS, AI ou APG", de:"Bei Bezug einer AHV-, IV- oder EO-Rente", it:"Se percepite una rendita AVS, AI o IPG", pt:"Se receber uma renda AVS, AI ou APG", es:"Si recibe una renta AVS, AI o APG", en:"If you receive an AVS, AI or APG pension", uk:"Якщо ви отримуєте пенсію AVS, AI або APG" }, camera: true },
-      { id:"lpp_att",    required: false, icon:"🏦", label:{ fr:"Attestation rente LPP / caisse de pension", de:"BVG-Renten- / Pensionskassenausweis", it:"Attestato rendita LPP / cassa pensioni", pt:"Comprovativo renda LPP / fundo de pensões", es:"Certificado renta LPP / fondo de pensiones", en:"LPP pension / pension fund statement", uk:"Підтвердження пенсії LPP / пенсійного фонду" }, hint:{ fr:"Si vous percevez une rente de caisse de pension", de:"Bei Bezug einer Pensionskassenrente", it:"Se percepite una rendita dalla cassa pensioni", pt:"Se receber uma renda do fundo de pensões", es:"Si recibe una renta del fondo de pensiones", en:"If you receive pension fund income", uk:"Якщо ви отримуєте дохід пенсійного фонду" }, camera: true },
-      { id:"independant",required: false, icon:"🏢", label:{ fr:"Bilan & compte de résultat (indépendants)", de:"Bilanz & Erfolgsrechnung (Selbständige)", it:"Bilancio & conto economico (indipendenti)", pt:"Balanço & conta de resultados (independentes)", es:"Balance & cuenta de resultados (independientes)", en:"Balance sheet & P&L (self-employed)", uk:"Баланс та звіт про прибутки (самозайняті)" }, hint:{ fr:"Uniquement si vous exercez une activité indépendante", de:"Nur bei selbständiger Erwerbstätigkeit", it:"Solo se esercitate un'attività indipendente", pt:"Apenas se exercer uma atividade independente", es:"Solo si ejerce una actividad independiente", en:"Only if you are self-employed", uk:"Лише якщо ви є самозайнятою особою" }, camera: false },
-      { id:"dividendes", required: false, icon:"📈", label:{ fr:"Relevés titres / dividendes / coupons 2025", de:"Wertschriftenausweis / Dividenden 2025", it:"Estratti titoli / dividendi / cedole 2025", pt:"Extratos de títulos / dividendos / cupões 2025", es:"Extractos valores / dividendos / cupones 2025", en:"Securities / dividends / coupons 2025", uk:"Витяги цінних паперів / дивіденди 2025" }, hint:{ fr:"Relevé fiscal annuel de votre banque (attestation IS)", de:"Jährlicher Steuerausweis Ihrer Bank", it:"Estratto fiscale annuale della vostra banca", pt:"Extrato fiscal anual do seu banco", es:"Extracto fiscal anual de su banco", en:"Annual tax statement from your bank", uk:"Річна податкова виписка вашого банку" }, camera: true },
-      { id:"chomage",    required: false, icon:"📑", label:{ fr:"Attestation indemnités chômage (APG)", de:"Bescheinigung Arbeitslosengeld (ALV)", it:"Attestato indennità disoccupazione (IPG)", pt:"Declaração subsídio de desemprego (APG)", es:"Certificado prestación desempleo (APG)", en:"Unemployment benefit statement (APG)", uk:"Довідка допомоги з безробіття (APG)" }, hint:{ fr:"Si vous avez perçu des indemnités chômage en 2025", de:"Bei Bezug von Arbeitslosengeldern in 2025", it:"Se avete percepito indennità di disoccupazione nel 2025", pt:"Se recebeu subsídio de desemprego em 2025", es:"Si percibió prestación de desempleo en 2025", en:"If you received unemployment benefit in 2025", uk:"Якщо ви отримували допомогу з безробіття у 2025" }, camera: true },
-    ]
-  },
-  {
-    id: "deductions",
-    icon: "✂️",
-    category: { fr:"Déductions & Épargne", de:"Abzüge & Vorsorge", it:"Deduzioni & Previdenza", pt:"Deduções & Poupança", es:"Deducciones & Ahorro", en:"Deductions & Savings", uk:"Відрахування та заощадження" },
-    docs: [
-      { id:"3a",         required: false, icon:"🏦", label:{ fr:"Attestation pilier 3a 2025 (banque / assurance)", de:"Säule-3a-Bescheinigung 2025 (Bank / Versicherung)", it:"Attestato pilastro 3a 2025 (banca / assicurazione)", pt:"Comprovativo pilar 3a 2025 (banco / seguradora)", es:"Certificado pilar 3a 2025 (banco / aseguradora)", en:"Pillar 3a certificate 2025 (bank / insurer)", uk:"Сертифікат стовпа 3a 2025 (банк / страховик)" }, hint:{ fr:"Plafond 2025: CHF 7'258 (salarié) · CHF 36'288 (indépendant)", de:"Grenze 2025: CHF 7'258 (Angestellte) · CHF 36'288 (Selbständige)", it:"Limite 2025: CHF 7'258 (dipendente) · CHF 36'288 (indipendente)", pt:"Limite 2025: CHF 7'258 (assalariado) · CHF 36'288 (independente)", es:"Límite 2025: CHF 7'258 (asalariado) · CHF 36'288 (independiente)", en:"2025 limit: CHF 7,258 (employee) · CHF 36,288 (self-employed)", uk:"Ліміт 2025: CHF 7'258 (найманий) · CHF 36'288 (самозайнятий)" }, camera: true },
-      { id:"rachat_lpp", required: false, icon:"💼", label:{ fr:"Confirmation rachat LPP (caisse de pension)", de:"Bestätigung BVG-Einkauf (Pensionskasse)", it:"Conferma riscatto LPP (cassa pensioni)", pt:"Confirmação resgate LPP (fundo de pensões)", es:"Confirmación rescate LPP (fondo de pensiones)", en:"LPP buy-in confirmation (pension fund)", uk:"Підтвердження викупу LPP (пенсійний фонд)" }, hint:{ fr:"Déduction intégrale — très important à ne pas oublier!", de:"Vollständig abzugsfähig — sehr wichtig, nicht vergessen!", it:"Deduzione integrale — molto importante da non dimenticare!", pt:"Dedução integral — muito importante não esquecer!", es:"Deducción íntegra — ¡muy importante no olvidar!", en:"Full deduction — very important, don't forget!", uk:"Повне відрахування — дуже важливо не забути!" }, camera: true, highlight: true },
-      { id:"frm_prof",   required: false, icon:"🎓", label:{ fr:"Attestation formation professionnelle / cours", de:"Berufsausbildungsnachweis / Kursbestätigung", it:"Attestato formazione professionale / corsi", pt:"Comprovativo formação profissional / cursos", es:"Certificado formación profesional / cursos", en:"Professional training / course certificate", uk:"Сертифікат професійної підготовки / курси" }, hint:{ fr:"Frais de formation liés à votre activité professionnelle actuelle", de:"Berufsauslagen für aktuelle berufliche Tätigkeit", it:"Spese di formazione legate alla vostra attività professionale attuale", pt:"Despesas de formação ligadas à sua atividade profissional atual", es:"Gastos de formación vinculados a su actividad profesional actual", en:"Training costs related to your current professional activity", uk:"Витрати на навчання пов'язані з вашою поточною професійною діяльністю" }, camera: true },
-      { id:"medicaux",   required: false, icon:"🏥", label:{ fr:"Factures frais médicaux non remboursés 2025", de:"Nicht erstattete Krankheitskosten 2025", it:"Fatture spese mediche non rimborsate 2025", pt:"Faturas despesas médicas não reembolsadas 2025", es:"Facturas gastos médicos no reembolsados 2025", en:"Unreimbursed medical expense invoices 2025", uk:"Рахунки невідшкодованих медичних витрат 2025" }, hint:{ fr:"Déductibles au-delà de 5% du revenu net (IFD) ou 5% (ICC Jura)", de:"Abzugsfähig über 5% des Nettoeinkommens (DBSt/kant. Steuer)", it:"Deducibili oltre il 5% del reddito netto (LIFD)", pt:"Dedutíveis acima de 5% do rendimento líquido (LIFD)", es:"Deducibles por encima del 5% de la renta neta (LIFD)", en:"Deductible above 5% of net income (FDTA)", uk:"Вираховуються понад 5% чистого доходу (LIFD)" }, camera: true },
-      { id:"garde",      required: false, icon:"👶", label:{ fr:"Justificatifs frais de garde d'enfants", de:"Kinderbetreuungskostenbelege", it:"Giustificativi spese di custodia dei figli", pt:"Comprovativos custos de guarda de crianças", es:"Justificantes gastos de guardería", en:"Childcare cost receipts", uk:"Підтверджуючі документи витрат на догляд за дітьми" }, hint:{ fr:"Crèche, garderie, famille de jour — factures officielles", de:"Krippe, Kita, Tagesfamilie — offizielle Rechnungen", it:"Asilo nido, centro diurno, famiglia diurna — fatture ufficiali", pt:"Creche, jardim de infância — faturas oficiais", es:"Guardería, jardín de infancia — facturas oficiales", en:"Nursery, daycare — official invoices", uk:"Ясла, дитячий садок — офіційні рахунки" }, camera: true },
-      { id:"dons",       required: false, icon:"🤝", label:{ fr:"Reçus de dons à des associations reconnues", de:"Spendenbelege an anerkannte Organisationen", it:"Ricevute donazioni ad associazioni riconosciute", pt:"Recibos de donativos a associações reconhecidas", es:"Recibos de donaciones a organizaciones reconocidas", en:"Donation receipts from recognised organisations", uk:"Квитанції пожертв до визнаних організацій" }, hint:{ fr:"Maximum déductible: 20% du revenu net", de:"Maximal abzugsfähig: 20% des Nettoeinkommens", it:"Massimo deducibile: 20% del reddito netto", pt:"Máximo dedutível: 20% do rendimento líquido", es:"Máximo deducible: 20% de la renta neta", en:"Maximum deductible: 20% of net income", uk:"Максимально вираховуваний: 20% чистого доходу" }, camera: true },
-      { id:"pension_al", required: false, icon:"👨‍👩‍👧", label:{ fr:"Attestation pension alimentaire versée/reçue", de:"Nachweis geleisteter/erhaltener Unterhaltsbeiträge", it:"Attestato alimenti versati/ricevuti", pt:"Comprovativo pensão alimentar paga/recebida", es:"Certificado pensión alimenticia pagada/recibida", en:"Alimony paid/received certificate", uk:"Підтвердження сплачених/отриманих аліментів" }, hint:{ fr:"Jugement de divorce ou convention homologuée", de:"Scheidungsurteil oder genehmigte Vereinbarung", it:"Sentenza di divorzio o accordo omologato", pt:"Sentença de divórcio ou convenção homologada", es:"Sentencia de divorcio o convenio homologado", en:"Divorce decree or approved agreement", uk:"Рішення про розлучення або затверджена угода" }, camera: true },
-    ]
-  },
-  {
-    id: "fortune",
-    icon: "🏦",
-    category: { fr:"Fortune & Dettes", de:"Vermögen & Schulden", it:"Sostanza & Debiti", pt:"Fortuna & Dívidas", es:"Patrimonio & Deudas", en:"Assets & Debts", uk:"Майно та борги" },
-    docs: [
-      { id:"comptes",    required: true,  icon:"🏧", label:{ fr:"Extraits de compte bancaire au 31.12.2025 (TOUS les comptes)", de:"Kontoauszüge per 31.12.2025 (ALLE Konten)", it:"Estratti conto bancari al 31.12.2025 (TUTTI i conti)", pt:"Extratos de conta bancária em 31.12.2025 (TODAS as contas)", es:"Extractos de cuenta bancaria a 31.12.2025 (TODAS las cuentas)", en:"Bank statements at 31.12.2025 (ALL accounts)", uk:"Банківські виписки станом на 31.12.2025 (ВСІ рахунки)" }, hint:{ fr:"Solde exact au 31 décembre — déterminant pour l'impôt sur la fortune", de:"Exakter Saldo per 31. Dezember — massgebend für die Vermögenssteuer", it:"Saldo esatto al 31 dicembre — determinante per l'imposta sulla sostanza", pt:"Saldo exato em 31 de dezembro — determinante para o imposto sobre a fortuna", es:"Saldo exacto a 31 de diciembre — determinante para el impuesto sobre el patrimonio", en:"Exact balance at 31 December — determining for wealth tax", uk:"Точний залишок на 31 грудня — визначальний для податку на майно" }, camera: true },
-      { id:"hypotheque", required: false, icon:"🏠", label:{ fr:"Situation hypothécaire — décompte d'intérêts 2025", de:"Hypothekarsituation — Zinsabrechnung 2025", it:"Situazione ipotecaria — conteggio interessi 2025", pt:"Situação hipotecária — extrato de juros 2025", es:"Situación hipotecaria — liquidación de intereses 2025", en:"Mortgage situation — interest statement 2025", uk:"Іпотечна ситуація — виписка відсотків 2025" }, hint:{ fr:"Attestation annuelle de votre banque (intérêts + solde capital)", de:"Jährliche Bestätigung Ihrer Bank (Zinsen + Kapitalschuld)", it:"Attestato annuale della vostra banca (interessi + capitale)", pt:"Declaração anual do seu banco (juros + saldo capital)", es:"Certificado anual de su banco (intereses + saldo capital)", en:"Annual certificate from your bank (interest + capital balance)", uk:"Щорічна виписка вашого банку (відсотки + залишок капіталу)" }, camera: true, highlight: true },
-      { id:"immobilier", required: false, icon:"🏡", label:{ fr:"Valeur fiscale de l'immeuble / appartement", de:"Steuerwert der Liegenschaft / Wohnung", it:"Valore fiscale dell'immobile / appartamento", pt:"Valor fiscal do imóvel / apartamento", es:"Valor fiscal del inmueble / apartamento", en:"Fiscal value of property / apartment", uk:"Фіскальна вартість нерухомості / квартири" }, hint:{ fr:"Disponible auprès de la commune ou sur l'avis de taxation précédent", de:"Erhältlich bei der Gemeinde oder aus dem letzten Steuerveranlagungsbescheid", it:"Disponibile presso il comune o sull'avviso di tassazione precedente", pt:"Disponível na junta de freguesia ou no aviso de tributação anterior", es:"Disponible en el ayuntamiento o en el aviso de imposición anterior", en:"Available from the municipality or on the previous tax assessment", uk:"Доступна в муніципалітеті або у попередньому повідомленні про оподаткування" }, camera: true },
-      { id:"entretien",  required: false, icon:"🔧", label:{ fr:"Factures entretien d'immeuble 2025 (frais réels)", de:"Unterhaltsrechnungen 2025 (effektive Kosten)", it:"Fatture manutenzione immobile 2025 (costi effettivi)", pt:"Faturas manutenção imóvel 2025 (custos reais)", es:"Facturas mantenimiento inmueble 2025 (costes reales)", en:"Property maintenance invoices 2025 (actual costs)", uk:"Рахунки за обслуговування нерухомості 2025 (фактичні витрати)" }, hint:{ fr:"Si vous avez eu des travaux d'entretien (non valeur ajoutée). L'IA compare forfait 20% vs réel", de:"Bei Unterhaltsarbeiten (keine Wertvermehrung). KI vergleicht 20% Pauschale vs. effektiv", it:"Se avete avuto lavori di manutenzione (non a valore aggiunto). L'IA confronta forfait 20% vs effettivo", pt:"Se teve trabalhos de manutenção (não valorização). A IA compara forfait 20% vs real", es:"Si tuvo trabajos de mantenimiento (no de valorización). La IA compara forfait 20% vs real", en:"If you had maintenance work (not capital improvements). AI compares 20% flat rate vs actual", uk:"Якщо були ремонтні роботи (не капітальні). ШІ порівнює 20% фіксовану ставку та фактичні витрати" }, camera: true },
-      { id:"leasing",    required: false, icon:"🚗", label:{ fr:"Contrats de leasing / dettes en cours 2025", de:"Leasingverträge / laufende Schulden 2025", it:"Contratti di leasing / debiti in corso 2025", pt:"Contratos de leasing / dívidas em curso 2025", es:"Contratos de leasing / deudas en curso 2025", en:"Leasing contracts / current debts 2025", uk:"Лізингові контракти / поточні борги 2025" }, hint:{ fr:"Solde dû au 31.12.2025 — à déclarer dans les dettes", de:"Ausstehender Saldo per 31.12.2025 — als Schulden zu deklarieren", it:"Saldo dovuto al 31.12.2025 — da dichiarare nei debiti", pt:"Saldo devido em 31.12.2025 — a declarar nas dívidas", es:"Saldo pendiente al 31.12.2025 — a declarar en las deudas", en:"Balance due at 31.12.2025 — to declare in debts", uk:"Залишок на 31.12.2025 — декларувати у боргах" }, camera: true },
-      { id:"assurance_v",required: false, icon:"📋", label:{ fr:"Polices assurance-vie (valeur de rachat au 31.12.2025)", de:"Lebensversicherungspolicen (Rückkaufswert per 31.12.2025)", it:"Polizze assicurazione vita (valore di riscatto al 31.12.2025)", pt:"Apólices de seguro de vida (valor de resgate em 31.12.2025)", es:"Pólizas de seguro de vida (valor de rescate al 31.12.2025)", en:"Life insurance policies (surrender value at 31.12.2025)", uk:"Поліси страхування життя (викупна вартість на 31.12.2025)" }, hint:{ fr:"Attestation annuelle de votre compagnie d'assurance", de:"Jährliche Bestätigung Ihrer Versicherungsgesellschaft", it:"Attestato annuale della vostra compagnia di assicurazione", pt:"Declaração anual da sua companhia de seguros", es:"Certificado anual de su compañía de seguros", en:"Annual certificate from your insurance company", uk:"Щорічна довідка вашої страхової компанії" }, camera: true },
-    ]
-  }
+// ── MAPPING EXTENSION/MIME → TYPE DE DOCUMENT ──────────────────────────
+// Quand l'utilisateur dépose un fichier sans préciser son type,
+// le nom du fichier et quelques heuristiques permettent de deviner.
+function guessDocType(file) {
+  const name = (file.name || "").toLowerCase();
+  if (/di[_\s-]?202[0-9]|declaration|steuererklaerung/.test(name)) return "di_prev";
+  if (/salaire|lohnausweis|sal[_\s-]?2025/.test(name)) return "cert_sal";
+  if (/3a|pilier|saeule|previdenza/.test(name)) return "3a";
+  if (/lpp|rachat|einkauf|pkasse/.test(name)) return "rachat_lpp";
+  if (/compte|konto|relevé|auszug|extrait/.test(name)) return "comptes";
+  if (/hypotheque|hypoth|zinsen/.test(name)) return "hypotheque";
+  if (/immobilier|immeuble|liegen/.test(name)) return "immobilier";
+  if (/medical|medizin|soin|arzt|facture/.test(name)) return "medicaux";
+  if (/garde|kinder|creche|crèche/.test(name)) return "garde";
+  if (/don|spende|donation/.test(name)) return "dons";
+  if (/leasing|auto|vehicule/.test(name)) return "leasing";
+  if (/entretien|unterhalt|reparation/.test(name)) return "entretien";
+  return "default";
+}
+
+// ── LISTE DES TYPES DE DOCUMENTS ───────────────────────────────────────
+const DOC_TYPES = (L) => ([
+  { id:"di_prev",    icon:"📋", label: L({ fr:"Déclaration 2024 (N-1)", de:"Steuererklärung 2024", en:"2024 Tax Return" }), required:false, cat:"Identité" },
+  { id:"permis",     icon:"🪪", label: L({ fr:"Carte d'identité / Permis", de:"Ausweis / Aufenthaltsbewilligung", en:"ID / Residence permit" }), required:false, cat:"Identité" },
+  { id:"cert_sal",   icon:"📄", label: L({ fr:"Certificat de salaire 2025", de:"Lohnausweis 2025", en:"Salary certificate 2025" }), required:true,  cat:"Revenus" },
+  { id:"avs",        icon:"🏛️", label: L({ fr:"Rente AVS/AI", de:"AHV/IV-Rente", en:"AVS/AI pension" }), required:false, cat:"Revenus" },
+  { id:"lpp_att",    icon:"🏦", label: L({ fr:"Rente LPP / caisse pension", de:"BVG-Rente / PK", en:"LPP pension fund" }), required:false, cat:"Revenus" },
+  { id:"independant",icon:"🏢", label: L({ fr:"Bilan indépendant", de:"Bilanz Selbständige", en:"Self-employed P&L" }), required:false, cat:"Revenus" },
+  { id:"dividendes", icon:"📈", label: L({ fr:"Titres / dividendes", de:"Wertschriften / Dividenden", en:"Securities / dividends" }), required:false, cat:"Revenus" },
+  { id:"chomage",    icon:"📑", label: L({ fr:"Indemnités chômage", de:"Arbeitslosengeld", en:"Unemployment benefit" }), required:false, cat:"Revenus" },
+  { id:"3a",         icon:"🏦", label: L({ fr:"Pilier 3a 2025", de:"Säule 3a 2025", en:"Pillar 3a 2025" }), required:false, cat:"Déductions", highlight:true },
+  { id:"rachat_lpp", icon:"💼", label: L({ fr:"Rachat LPP", de:"PK-Einkauf", en:"LPP buy-in" }), required:false, cat:"Déductions", highlight:true },
+  { id:"medicaux",   icon:"🏥", label: L({ fr:"Frais médicaux", de:"Krankheitskosten", en:"Medical expenses" }), required:false, cat:"Déductions" },
+  { id:"garde",      icon:"👶", label: L({ fr:"Frais de garde", de:"Kinderbetreuung", en:"Childcare" }), required:false, cat:"Déductions" },
+  { id:"dons",       icon:"🤝", label: L({ fr:"Dons associations", de:"Spendenbelege", en:"Donation receipts" }), required:false, cat:"Déductions" },
+  { id:"comptes",    icon:"🏧", label: L({ fr:"Extraits bancaires 31.12", de:"Kontoauszüge 31.12", en:"Bank statements 31.12" }), required:true,  cat:"Fortune" },
+  { id:"hypotheque", icon:"🏠", label: L({ fr:"Intérêts hypothécaires", de:"Hypothekarzinsen", en:"Mortgage interest" }), required:false, cat:"Fortune", highlight:true },
+  { id:"immobilier", icon:"🏡", label: L({ fr:"Valeur fiscale immeuble", de:"Steuerwert Liegenschaft", en:"Property fiscal value" }), required:false, cat:"Fortune" },
+  { id:"entretien",  icon:"🔧", label: L({ fr:"Travaux d'entretien", de:"Unterhaltsarbeiten", en:"Maintenance works" }), required:false, cat:"Fortune" },
+  { id:"leasing",    icon:"🚗", label: L({ fr:"Leasing / dettes", de:"Leasing / Schulden", en:"Leasing / debts" }), required:false, cat:"Fortune" },
+  { id:"assurance_v",icon:"📋", label: L({ fr:"Assurance-vie (valeur rachat)", de:"Lebensversicherung", en:"Life insurance" }), required:false, cat:"Fortune" },
 ]);
 
 // ── COMPOSANT PRINCIPAL ──────────────────────────────────────────────────
 export function ChecklistScreen() {
-  const { setScreen, lang, cantonConfig } = useStore();
+  const { setScreen, lang, cantonConfig, mode, b2bUser } = useStore();
   const t = useT(lang);
-  const [checked, setChecked] = useState({});
+  const L = useCallback((obj) => obj?.[lang] || obj?.fr || "", [lang]);
+
+  // État documents : { docId: File[] }
   const [uploads, setUploads] = useState({});
-  const [expanded, setExpanded] = useState({ identity: true, revenus: true, deductions: false, fortune: false });
-  const [ocrStatus, setOcrStatus] = useState({}); // { docId: 'loading'|'done'|'error' }
+  // État OCR : { docId: 'loading_1_3' | 'done' | 'error' }
+  const [ocrStatus, setOcrStatus] = useState({});
+  // Résultats OCR fusionnés
+  const [allOcrResults, setAllOcrResults] = useState({});
+  // Identité extraite par OCR
+  const [identiteOCR, setIdentiteOCR] = useState({});
+  // Fallback identité manuelle (si OCR ne trouve pas)
+  const [showIdentiteForm, setShowIdentiteForm] = useState(false);
+  const [identiteManuelle, setIdentiteManuelle] = useState({ prenom:"", nom:"", no_contribuable:"" });
+  // Zone de dépôt globale
+  const [dragOver, setDragOver] = useState(false);
+  const [globalAnalyzing, setGlobalAnalyzing] = useState(false);
+  const [globalProgress, setGlobalProgress] = useState({ done:0, total:0, current:"" });
+  // Advisor
   const [advisorData, setAdvisorData] = useState(null);
   const [showAdvisor, setShowAdvisor] = useState(false);
   const [advisorLoading, setAdvisorLoading] = useState(false);
-  const [allOcrResults, setAllOcrResults] = useState({});
-  const fileRefs = useRef({});
+  // Vue
+  const [view, setView] = useState("drop"); // "drop" | "detail"
+  const globalInputRef = useRef(null);
+  const { importFromDoc, setField } = useStore();
 
-  const docs = DOCS(t);
-  const L = (obj) => obj?.[lang] || obj?.fr || "";
+  const docs = DOC_TYPES(L);
+  const totalUploaded = Object.values(uploads).reduce((s, arr) => s + (arr?.length || 0), 0);
+  const totalOcrDone  = Object.values(ocrStatus).filter(s => s === "done").length;
+  const identiteConnue = identiteOCR.nom || identiteManuelle.nom;
 
-  const allRequired = docs.flatMap(cat => cat.docs.filter(d => d.required));
-  const totalDocs = docs.flatMap(cat => cat.docs).length;
-  const checkedCount = Object.values(checked).filter(Boolean).length;
-  const uploadCount = Object.values(uploads).filter(Boolean).length;
-  const progress = Math.round(((checkedCount + uploadCount) / (totalDocs * 2)) * 100);
-  const canProceed = allRequired.every(d => checked[d.id] || uploads[d.id]);
-
-  const { importFromDoc } = useStore();
-
-  async function handleUpload(docId, e) {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    // Plusieurs pages : on ajoute aux pages existantes
-    setUploads(u => {
-      const prev = Array.isArray(u[docId]) ? u[docId] : u[docId] ? [u[docId]] : [];
-      return { ...u, [docId]: [...prev, ...files] };
-    });
-    setChecked(c => ({ ...c, [docId]: true }));
-    setOcrStatus(s => ({ ...s, [docId]: "loading" }));
-
-    try {
-      // OCR page par page → merge des résultats
-      let merged = {};
-      for (let i = 0; i < files.length; i++) {
-        setOcrStatus(s => ({ ...s, [docId]: `loading_${i+1}_${files.length}` }));
-        const result = await ocrDocument(files[i], docId);
-        if (!result._error) {
-          // Merge : on garde la valeur non-nulle la plus récente
-          merged = mergeOcrResults(merged, result);
-        }
-      }
-      if (Object.keys(merged).length > 0) {
-        applyOCRToStore(merged, importFromDoc, null, SOURCE);
-        setOcrStatus(s => ({ ...s, [docId]: "done" }));
-        setAllOcrResults(r => ({ ...r, [docId]: merged }));
-      } else {
-        setOcrStatus(s => ({ ...s, [docId]: "error" }));
-      }
-    } catch {
-      setOcrStatus(s => ({ ...s, [docId]: "error" }));
-    }
-    // Reset input pour permettre d'ajouter d'autres pages
-    e.target.value = "";
-  }
-
-  // Fusionne deux résultats OCR : garde les valeurs non-nulles, additionne les montants cumulables
+  // ── Merge OCR results ──────────────────────────────────────────────
   function mergeOcrResults(base, next) {
     const merged = { ...base };
-    const ADDITIVE = new Set(["solde_bancaire","solde_31dec","frais_medicaux","dons","frais_garde"]);
+    const ADDITIVE = new Set(["solde_bancaire","solde_31dec","frais_medicaux","dons","frais_garde","montant_ttc"]);
     for (const [k, v] of Object.entries(next)) {
-      if (v === null || v === "" || v === 0) continue;
+      if (v === null || v === "" || v === 0 || k.startsWith("_")) continue;
       if (ADDITIVE.has(k) && typeof v === "number" && typeof merged[k] === "number") {
         merged[k] = (merged[k] || 0) + v;
       } else if (!merged[k]) {
@@ -143,299 +108,476 @@ export function ChecklistScreen() {
     return merged;
   }
 
-  function toggleCheck(docId) {
-    setChecked(c => ({ ...c, [docId]: !c[docId] }));
+  // ── OCR d'un ou plusieurs fichiers pour un docType ─────────────────
+  async function processFiles(files, docType) {
+    if (!files.length) return;
+    setOcrStatus(s => ({ ...s, [docType]: `loading_0_${files.length}` }));
+
+    let merged = {};
+    for (let i = 0; i < files.length; i++) {
+      setOcrStatus(s => ({ ...s, [docType]: `loading_${i+1}_${files.length}` }));
+      try {
+        const result = await ocrDocument(files[i], docType);
+        if (!result._error) {
+          merged = mergeOcrResults(merged, result);
+        }
+      } catch(e) { /* continue */ }
+    }
+
+    if (Object.keys(merged).length > 0) {
+      applyOCRToStore(merged, importFromDoc, null, SOURCE);
+      setOcrStatus(s => ({ ...s, [docType]: "done" }));
+      setAllOcrResults(r => {
+        const updated = { ...r, [docType]: merged };
+        return updated;
+      });
+      // Détecter identité
+      if (docType === "di_prev" || docType === "permis") {
+        if (merged.nom || merged.prenom || merged.no_contribuable) {
+          setIdentiteOCR(prev => ({ ...prev, ...merged }));
+        }
+      }
+    } else {
+      setOcrStatus(s => ({ ...s, [docType]: "error" }));
+    }
   }
 
-  const labels = {
-    title:    { fr:"Préparez vos documents",           de:"Bereiten Sie Ihre Unterlagen vor",       it:"Preparate i vostri documenti",           pt:"Prepare os seus documentos",             es:"Prepare sus documentos",                 en:"Prepare your documents",                 uk:"Підготуйте ваші документи" },
-    subtitle: { fr:"Cochez chaque document disponible ou téléversez-le directement. L'IA s'occupe du reste.", de:"Haken Sie verfügbare Dokumente ab oder laden Sie sie hoch. Die KI erledigt den Rest.", it:"Spuntate i documenti disponibili o caricateli. L'IA fa il resto.", pt:"Marque os documentos disponíveis ou carregue-os. A IA trata do resto.", es:"Marque los documentos disponibles o súbalos. La IA hace el resto.", en:"Tick each available document or upload it directly. AI does the rest.", uk:"Позначте кожен доступний документ або завантажте його. ШІ зробить решту." },
-    proceed:  { fr:"Commencer ma déclaration →",       de:"Steuererklärung starten →",              it:"Inizia la mia dichiarazione →",           pt:"Iniciar a minha declaração →",            es:"Iniciar mi declaración →",               en:"Start my tax return →",                   uk:"Почати мою декларацію →" },
-    docs_ok:  { fr:"document(s) prêt(s)",              de:"Dokument(e) bereit",                     it:"documento/i pronto/i",                    pt:"documento(s) pronto(s)",                  es:"documento(s) listo(s)",                  en:"document(s) ready",                      uk:"документ(и) готовий/і" },
-    photo:    { fr:"📷 Photo(s)",                          de:"📷 Foto",                                it:"📷 Foto",                                  pt:"📷 Foto",                                 es:"📷 Foto",                                en:"📷 Photo",                               uk:"📷 Фото" },
-    upload:   { fr:"📎 Fichier",                        de:"📎 Datei",                               it:"📎 File",                                  pt:"📎 Ficheiro",                             es:"📎 Archivo",                             en:"📎 File",                               uk:"📎 Файл" },
-    required: { fr:"Recommandé",                        de:"Empfohlen",                              it:"Consigliato",                              pt:"Recomendado",                             es:"Recomendado",                            en:"Recommended",                            uk:"Рекомендовано" },
-    skip:     { fr:"Passer sans ce document",           de:"Ohne dieses Dokument weiter",            it:"Continua senza questo documento",          pt:"Continuar sem este documento",            es:"Continuar sin este documento",           en:"Skip this document",                     uk:"Пропустити цей документ" },
+  // ── Upload depuis le sélecteur par type ────────────────────────────
+  async function handleUpload(docType, e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploads(u => {
+      const prev = Array.isArray(u[docType]) ? u[docType] : [];
+      return { ...u, [docType]: [...prev, ...files] };
+    });
+    await processFiles(files, docType);
+    e.target.value = "";
+  }
+
+  // ── DROP ZONE GLOBALE — analyse automatique ────────────────────────
+  const handleGlobalDrop = useCallback(async (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer?.files || e.target?.files || []);
+    if (!files.length) return;
+    await analyzeFiles(files);
+  }, []);
+
+  async function analyzeFiles(files) {
+    setGlobalAnalyzing(true);
+    setGlobalProgress({ done:0, total:files.length, current:"" });
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const docType = guessDocType(file);
+      setGlobalProgress({ done:i, total:files.length, current: file.name });
+
+      setUploads(u => {
+        const prev = Array.isArray(u[docType]) ? u[docType] : [];
+        return { ...u, [docType]: [...prev, file] };
+      });
+      setOcrStatus(s => ({ ...s, [docType]: `loading_${i+1}_${files.length}` }));
+
+      try {
+        const result = await ocrDocument(file, docType);
+        if (!result._error) {
+          applyOCRToStore(result, importFromDoc, null, SOURCE);
+          setAllOcrResults(r => ({ ...r, [docType]: mergeOcrResults(r[docType] || {}, result) }));
+          setOcrStatus(s => ({ ...s, [docType]: "done" }));
+          if ((docType === "di_prev" || docType === "permis") && (result.nom || result.prenom)) {
+            setIdentiteOCR(prev => ({ ...prev, ...result }));
+          }
+        } else {
+          setOcrStatus(s => ({ ...s, [docType]: "error" }));
+        }
+      } catch {
+        setOcrStatus(s => ({ ...s, [docType]: "error" }));
+      }
+      setGlobalProgress({ done:i+1, total:files.length, current: file.name });
+    }
+
+    setGlobalAnalyzing(false);
+    setView("detail");
+
+    // Si aucune identité trouvée → proposer la saisie
+    setTimeout(() => {
+      const stored = useStore.getState().getAll();
+      if (!stored.nom && !stored.prenom) {
+        setShowIdentiteForm(true);
+      }
+    }, 500);
+  }
+
+  // ── Confirmer identité manuelle ────────────────────────────────────
+  function confirmerIdentiteManuelle() {
+    if (identiteManuelle.prenom) importFromDoc("prenom", identiteManuelle.prenom, "saisie_manuelle");
+    if (identiteManuelle.nom) importFromDoc("nom", identiteManuelle.nom, "saisie_manuelle");
+    if (identiteManuelle.no_contribuable) importFromDoc("no_contribuable", identiteManuelle.no_contribuable, "saisie_manuelle");
+    setShowIdentiteForm(false);
+  }
+
+  // ── Lancer le conseiller fiscal ────────────────────────────────────
+  async function lancerConseiller() {
+    if (Object.keys(allOcrResults).length === 0) {
+      setScreen("form");
+      return;
+    }
+    setAdvisorLoading(true);
+    try {
+      const storeSnap = useStore.getState();
+      const allData = storeSnap.getAll ? storeSnap.getAll() : {};
+      const advice = await genererQuestionsIA(allOcrResults, allData, lang);
+      setAdvisorData(advice);
+      if (advice?.questions?.length > 0) {
+        setAdvisorLoading(false);
+        setShowAdvisor(true);
+        return;
+      }
+    } catch(e) { console.warn("Advisor:", e); }
+    setAdvisorLoading(false);
+    setScreen("form");
+  }
+
+  // ── Si AdvisorScreen est actif ─────────────────────────────────────
+  if (showAdvisor && advisorData) {
+    return (
+      <AdvisorScreen
+        advisorData={advisorData}
+        onComplete={() => setScreen("form")}
+        onBack={() => setShowAdvisor(false)}
+        lang={lang}
+      />
+    );
+  }
+
+  // ── OcrStatus label ────────────────────────────────────────────────
+  const ocrLabel = (docId) => {
+    const s = ocrStatus[docId];
+    if (!s) return null;
+    if (s.startsWith("loading")) {
+      const [,done,total] = s.split("_");
+      return { text: total > 1 ? `⏳ ${done}/${total}…` : "⏳ Analyse…", color: S.gold };
+    }
+    if (s === "done") return { text: "✨ Extrait", color: "#34D399" };
+    if (s === "error") return { text: "⚠️ À vérifier", color: "#F87171" };
+    return null;
   };
 
+  const cats = [...new Set(docs.map(d => d.cat))];
+  const uploadedIds = Object.keys(uploads).filter(k => uploads[k]?.length > 0);
+
+  // ────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight:"100vh", background: S.bg, paddingBottom: 120 }}>
+    <div style={{ minHeight:"100vh", background:S.bg, paddingBottom:120 }}>
       <GlobalStyles />
       <div style={{ position:"fixed", top:16, right:16, zIndex:100 }}><LangSelector /></div>
 
-      {/* HEADER FIXE AVEC PROGRESS */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: `linear-gradient(180deg, ${S.bg} 85%, transparent)`,
-        paddingBottom: 8,
-      }}>
-        <div style={{ maxWidth: 640, margin:"0 auto", padding: "16px 20px 0" }}>
-          {/* Back + titre */}
-          <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom: 12 }}>
+      {/* HEADER */}
+      <div style={{ position:"sticky", top:0, zIndex:50, background:`linear-gradient(180deg,${S.bg} 85%,transparent)`, paddingBottom:8 }}>
+        <div style={{ maxWidth:680, margin:"0 auto", padding:"16px 20px 0" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
             <button onClick={() => setScreen("welcome")}
-              style={{ background:"none", border:`1px solid ${S.border}`, color: S.textDim,
-                       borderRadius: 8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif" }}>
-              ← {t("nav_back")}
+              style={{ background:"none", border:`1px solid ${S.border}`, color:S.textDim, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif" }}>
+              ←
             </button>
-            <div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize: 22, color: S.cream, fontWeight: 300 }}>
-                {L(labels.title)}
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:S.cream, fontWeight:300 }}>
+                {L({ fr:"Documents du dossier", de:"Dokumente", en:"Dossier documents" })}
               </div>
-              <div style={{ fontSize: 10, color: S.textDim, fontFamily:"'Outfit',sans-serif" }}>
-                {cantonConfig?.appName || "JurAI Tax"} · {checkedCount + uploadCount} {L(labels.docs_ok)}
-              </div>
+              {mode === "b2b" && b2bUser && (
+                <div style={{ fontSize:11, color:S.gold, fontFamily:"'Outfit',sans-serif" }}>
+                  💼 {b2bUser.firm} {identiteConnue ? `— ${identiteOCR.prenom || identiteManuelle.prenom} ${identiteOCR.nom || identiteManuelle.nom}` : "— Nouveau client"}
+                </div>
+              )}
             </div>
+            {totalUploaded > 0 && (
+              <div style={{ fontSize:12, color:S.green, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                {totalUploaded} fichier{totalUploaded > 1 ? "s" : ""} · {totalOcrDone} analysé{totalOcrDone > 1 ? "s" : ""}
+              </div>
+            )}
           </div>
-
-          {/* Barre de progression */}
-          <div style={{ background: S.card, borderRadius: 99, height: 6, overflow:"hidden", border:`1px solid ${S.border}` }}>
-            <div style={{
-              height:"100%", width:`${Math.min(progress, 100)}%`,
-              background: `linear-gradient(90deg, ${S.gold}, #D4B55A)`,
-              borderRadius: 99, transition: "width 0.4s cubic-bezier(0.16,1,0.3,1)"
-            }} />
-          </div>
-          <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
-            <span style={{ fontSize:10, color: S.textDim, fontFamily:"'Outfit',sans-serif" }}>
-              {L(labels.subtitle).substring(0, 60)}…
-            </span>
-            <span style={{ fontSize:10, color: S.gold, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
-              {Math.min(progress, 100)}%
-            </span>
-          </div>
+          {/* Barre de progression globale */}
+          {totalUploaded > 0 && (
+            <div style={{ background:S.card, borderRadius:99, height:4, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${Math.round((totalOcrDone / Math.max(uploadedIds.length, 1)) * 100)}%`, background:`linear-gradient(90deg,${S.gold},#D4B55A)`, borderRadius:99, transition:"width 0.4s ease" }} />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* CONTENU */}
-      <div style={{ maxWidth: 640, margin:"0 auto", padding:"8px 20px" }}>
+      <div style={{ maxWidth:680, margin:"0 auto", padding:"8px 20px" }}>
 
-        {docs.map(cat => (
-          <div key={cat.id} style={{ marginBottom: 16 }}>
-            {/* En-tête catégorie */}
-            <button
-              onClick={() => setExpanded(e => ({ ...e, [cat.id]: !e[cat.id] }))}
-              style={{
-                width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
-                background: S.surface, border:`1px solid ${S.border}`,
-                borderRadius: expanded[cat.id] ? "12px 12px 0 0" : 12,
-                padding:"14px 16px", cursor:"pointer", marginBottom: expanded[cat.id] ? 0 : 0
-              }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:20 }}>{cat.icon}</span>
-                <span style={{ fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:600, color: S.cream }}>
-                  {L(cat.category)}
-                </span>
-                {/* Badge docs complétés dans cette catégorie */}
-                {(() => {
-                  const done = cat.docs.filter(d => checked[d.id] || uploads[d.id]).length;
-                  return done > 0 ? (
-                    <span style={{ background:`rgba(52,211,153,0.12)`, border:`1px solid rgba(52,211,153,0.25)`,
-                                   borderRadius:99, padding:"2px 8px", fontSize:10, color: S.green,
-                                   fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
-                      {done}/{cat.docs.length}
-                    </span>
-                  ) : null;
-                })()}
+        {/* ══════════════════════════════════════════════════════════
+            ZONE DE DÉPÔT GLOBALE
+        ═══════════════════════════════════════════════════════════ */}
+        <div
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleGlobalDrop}
+          onClick={() => !globalAnalyzing && globalInputRef.current?.click()}
+          style={{
+            border: `2px dashed ${dragOver ? S.gold : S.borderHi}`,
+            borderRadius: 18,
+            padding: "28px 20px",
+            textAlign: "center",
+            cursor: globalAnalyzing ? "wait" : "pointer",
+            background: dragOver ? `rgba(201,168,76,0.06)` : S.surface,
+            transition: "all 0.25s",
+            marginBottom: 16,
+            position: "relative",
+          }}>
+          <input
+            ref={globalInputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            capture={undefined}
+            style={{ display:"none" }}
+            onChange={e => analyzeFiles(Array.from(e.target.files || []))}
+          />
+
+          {globalAnalyzing ? (
+            <>
+              <div style={{ fontSize:32, marginBottom:10 }}>⏳</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, color:S.cream, marginBottom:6 }}>
+                {L({ fr:"Analyse en cours…", de:"Wird analysiert…", en:"Analysing…" })}
               </div>
-              <span style={{ color: S.textDim, fontSize:16, transition:"transform 0.2s",
-                             transform: expanded[cat.id] ? "rotate(180deg)" : "none" }}>▾</span>
+              <div style={{ fontSize:13, color:S.gold, fontFamily:"'Outfit',sans-serif", marginBottom:8 }}>
+                {globalProgress.done}/{globalProgress.total} — {globalProgress.current?.substring(0,35)}
+              </div>
+              <div style={{ height:6, background:S.card, borderRadius:99, overflow:"hidden", maxWidth:300, margin:"0 auto" }}>
+                <div style={{ height:"100%", width:`${Math.round((globalProgress.done/Math.max(globalProgress.total,1))*100)}%`, background:`linear-gradient(90deg,${S.gold},#D4B55A)`, borderRadius:99, transition:"width 0.3s ease" }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize:40, marginBottom:12 }}>📂</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:S.cream, fontWeight:300, marginBottom:6 }}>
+                {L({ fr:"Déposez tous les documents ici", de:"Alle Dokumente hier ablegen", en:"Drop all documents here" })}
+              </div>
+              <div style={{ fontSize:13, color:S.textDim, fontFamily:"'Outfit',sans-serif", lineHeight:1.5, marginBottom:16 }}>
+                {L({ fr:"Photos, PDF, plusieurs fichiers à la fois — tAIx identifie et analyse chaque document automatiquement",
+                      de:"Fotos, PDFs, mehrere Dateien auf einmal — tAIx erkennt und analysiert jedes Dokument automatisch",
+                      en:"Photos, PDFs, multiple files at once — tAIx identifies and analyses each document automatically" })}
+              </div>
+              {/* Boutons selon appareil */}
+              <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+                {/* Mobile : appareil photo direct */}
+                <label style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"12px 22px", borderRadius:12, background:`linear-gradient(135deg,${S.gold},#D4B55A)`, color:S.bg, fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+                  📷 {L({ fr:"Photographier", de:"Fotografieren", en:"Take photos" })}
+                  <input type="file" accept="image/*" capture="environment" multiple style={{ display:"none" }}
+                    onChange={e => analyzeFiles(Array.from(e.target.files || []))} />
+                </label>
+                {/* Desktop : sélecteur de fichiers */}
+                <label style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"12px 22px", borderRadius:12, background:S.card, border:`1px solid ${S.border}`, color:S.cream, fontFamily:"'Outfit',sans-serif", fontSize:14, cursor:"pointer" }}>
+                  📎 {L({ fr:"Sélectionner fichiers", de:"Dateien wählen", en:"Select files" })}
+                  <input type="file" accept="image/*,application/pdf" multiple style={{ display:"none" }}
+                    onChange={e => analyzeFiles(Array.from(e.target.files || []))} />
+                </label>
+                {/* Galerie : sélection multiple sans capture */}
+                <label style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"12px 22px", borderRadius:12, background:S.card, border:`1px solid ${S.border}`, color:S.textDim, fontFamily:"'Outfit',sans-serif", fontSize:14, cursor:"pointer" }}>
+                  🖼 {L({ fr:"Galerie photo", de:"Fotogalerie", en:"Photo gallery" })}
+                  <input type="file" accept="image/*" multiple style={{ display:"none" }}
+                    onChange={e => analyzeFiles(Array.from(e.target.files || []))} />
+                </label>
+              </div>
+              {dragOver && (
+                <div style={{ position:"absolute", inset:0, borderRadius:18, display:"flex", alignItems:"center", justifyContent:"center", background:`rgba(201,168,76,0.12)`, border:`2px solid ${S.gold}` }}>
+                  <div style={{ fontSize:18, color:S.gold, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                    📂 {L({ fr:"Déposez ici", de:"Hier ablegen", en:"Drop here" })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            FALLBACK IDENTITÉ — si OCR n'a pas trouvé le client
+        ═══════════════════════════════════════════════════════════ */}
+        {showIdentiteForm && (
+          <div style={{ padding:"20px", borderRadius:14, background:`rgba(201,168,76,0.06)`, border:`1px solid rgba(201,168,76,0.3)`, marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:S.gold, fontFamily:"'Outfit',sans-serif" }}>
+                  👤 {L({ fr:"Identité du client non trouvée dans les documents", de:"Kundenidentität nicht in Dokumenten gefunden", en:"Client identity not found in documents" })}
+                </div>
+                <div style={{ fontSize:11, color:S.textDim, fontFamily:"'Outfit',sans-serif", marginTop:2 }}>
+                  {L({ fr:"Renseignez les informations manuellement ou uploadez la DI 2024 / carte d'identité",
+                        de:"Geben Sie die Daten manuell ein oder laden Sie die Steuererklärung / den Ausweis hoch",
+                        en:"Enter details manually or upload the 2024 tax return / ID card" })}
+                </div>
+              </div>
+              <button onClick={() => setShowIdentiteForm(false)}
+                style={{ background:"none", border:"none", color:S.muted, cursor:"pointer", fontSize:18 }}>✕</button>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              {[
+                { key:"prenom", placeholder: L({ fr:"Prénom", de:"Vorname", en:"First name" }) },
+                { key:"nom",    placeholder: L({ fr:"Nom de famille", de:"Nachname", en:"Last name" }) },
+              ].map(f => (
+                <input key={f.key} value={identiteManuelle[f.key]} onChange={e => setIdentiteManuelle(p => ({...p,[f.key]:e.target.value}))}
+                  placeholder={f.placeholder}
+                  style={{ padding:"12px 14px", borderRadius:10, border:`1px solid ${S.border}`, background:S.card, color:S.cream, fontSize:14, fontFamily:"'Outfit',sans-serif", outline:"none", boxSizing:"border-box" }}
+                  onFocus={e=>e.target.style.borderColor=S.gold} onBlur={e=>e.target.style.borderColor=S.border}
+                />
+              ))}
+            </div>
+            <input value={identiteManuelle.no_contribuable} onChange={e => setIdentiteManuelle(p => ({...p,no_contribuable:e.target.value}))}
+              placeholder={L({ fr:"N° contribuable (facultatif)", de:"Steuernummer (optional)", en:"Tax ID (optional)" })}
+              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${S.border}`, background:S.card, color:S.cream, fontSize:14, fontFamily:"'Outfit',sans-serif", outline:"none", boxSizing:"border-box", marginBottom:10 }}
+              onFocus={e=>e.target.style.borderColor=S.gold} onBlur={e=>e.target.style.borderColor=S.border}
+            />
+            <button onClick={confirmerIdentiteManuelle}
+              disabled={!identiteManuelle.prenom || !identiteManuelle.nom}
+              style={{ padding:"12px 24px", borderRadius:10, background: identiteManuelle.prenom && identiteManuelle.nom ? `linear-gradient(135deg,${S.gold},#D4B55A)` : S.card, color: identiteManuelle.prenom && identiteManuelle.nom ? S.bg : S.textDim, fontFamily:"'Outfit',sans-serif", fontSize:13, fontWeight:700, border:"none", cursor: identiteManuelle.prenom && identiteManuelle.nom ? "pointer" : "default" }}>
+              {L({ fr:"Confirmer", de:"Bestätigen", en:"Confirm" })} →
             </button>
-
-            {/* Documents de la catégorie */}
-            {expanded[cat.id] && (
-              <div style={{ border:`1px solid ${S.border}`, borderTop:"none", borderRadius:"0 0 12px 12px", overflow:"hidden" }}>
-                {cat.docs.map((doc, i) => {
-                  const isChecked = checked[doc.id];
-                  const hasUpload = uploads[doc.id];
-                  const isDone = isChecked || hasUpload;
-
-                  return (
-                    <div key={doc.id}
-                      style={{
-                        padding:"14px 16px",
-                        background: isDone
-                          ? `rgba(52,211,153,0.05)`
-                          : doc.highlight ? `rgba(201,168,76,0.04)` : (i%2===0 ? S.card : S.surface),
-                        borderBottom: i < cat.docs.length-1 ? `1px solid ${S.border}` : "none",
-                        transition:"background 0.3s",
-                      }}>
-
-                      <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
-                        {/* Checkbox */}
-                        <button
-                          onClick={() => toggleCheck(doc.id)}
-                          style={{
-                            flexShrink:0, width:24, height:24, borderRadius:6, cursor:"pointer",
-                            border:`2px solid ${isDone ? "#34D399" : doc.highlight ? S.gold : S.border}`,
-                            background: isDone ? "rgba(52,211,153,0.15)" : "transparent",
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            fontSize:14, transition:"all 0.2s", marginTop:2
-                          }}>
-                          {isDone ? "✓" : ""}
-                        </button>
-
-                        {/* Contenu */}
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:3 }}>
-                            <span style={{ fontSize:16 }}>{doc.icon}</span>
-                            <span style={{
-                              fontFamily:"'Outfit',sans-serif", fontSize:13, fontWeight:600,
-                              color: isDone ? S.green : doc.highlight ? S.gold : S.cream,
-                              textDecoration: isDone && !hasUpload ? "line-through" : "none",
-                              opacity: isDone && !hasUpload ? 0.7 : 1,
-                            }}>
-                              {L(doc.label)}
-                            </span>
-                            {doc.highlight && !isDone && (
-                              <span style={{ fontSize:9, background:`rgba(201,168,76,0.15)`, border:`1px solid rgba(201,168,76,0.3)`,
-                                             color: S.gold, borderRadius:99, padding:"1px 7px",
-                                             fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.05em" }}>
-                                ★ {L(labels.required)}
-                              </span>
-                            )}
-                            {hasUpload && (
-                              <span style={{ fontSize:9, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)",
-                                             color: S.green, borderRadius:99, padding:"1px 7px",
-                                             fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
-                                ✓ {uploads[doc.id].name?.substring(0,20)}
-                              </span>
-                            )}
-                            {ocrStatus[doc.id]?.startsWith("loading") && (
-                              <span style={{ fontSize:9, background:"rgba(201,168,76,0.1)", border:"1px solid rgba(201,168,76,0.3)",
-                                             color:"#C9A84C", borderRadius:99, padding:"1px 7px",
-                                             fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
-                                ⏳ IA lit le document…
-                              </span>
-                            )}
-                            {ocrStatus[doc.id] === "done" && (
-                              <span style={{ fontSize:9, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)",
-                                             color:"#34D399", borderRadius:99, padding:"1px 7px",
-                                             fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
-                                ✨ Données extraites
-                              </span>
-                            )}
-                          </div>
-
-                          <div style={{ fontSize:11, color: S.textDim, fontFamily:"'Outfit',sans-serif", lineHeight:1.4, marginBottom:8 }}>
-                            {L(doc.hint)}
-                          </div>
-
-                          {/* Boutons upload */}
-                          {doc.camera && !isDone && (
-                            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                              {/* Prise de photo (mobile) — plusieurs pages possibles */}
-                              <label style={{
-                                display:"inline-flex", alignItems:"center", gap:5,
-                                background: S.surface, border:`1px solid ${S.border}`,
-                                borderRadius:8, padding:"6px 12px", cursor:"pointer",
-                                fontSize:12, color: S.gold, fontFamily:"'Outfit',sans-serif", fontWeight:600
-                              }}>
-                                📷 {lang === "de" ? "Foto(s)" : lang === "it" ? "Foto" : lang === "en" ? "Photo(s)" : "Photo(s)"}
-                                <input type="file" accept="image/*" capture="environment"
-                                  multiple
-                                  style={{ display:"none" }}
-                                  onChange={(e) => handleUpload(doc.id, e)} />
-                              </label>
-                              {/* Upload fichier (desktop) — plusieurs fichiers */}
-                              <label style={{
-                                display:"inline-flex", alignItems:"center", gap:5,
-                                background: S.surface, border:`1px solid ${S.border}`,
-                                borderRadius:8, padding:"6px 12px", cursor:"pointer",
-                                fontSize:12, color: S.textDim, fontFamily:"'Outfit',sans-serif"
-                              }}>
-                                📎 {lang === "de" ? "Dateien" : lang === "it" ? "File" : lang === "en" ? "Files" : "Fichiers"}
-                                <input type="file" accept="image/*,application/pdf,.pdf"
-                                  multiple
-                                  style={{ display:"none" }}
-                                  onChange={(e) => handleUpload(doc.id, e)} />
-                              </label>
-                            </div>
-                          )}
-                          {isDone && hasUpload && (() => {
-                            const pages = Array.isArray(uploads[doc.id]) ? uploads[doc.id].length : 1;
-                            return (
-                              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-                                <span style={{ fontSize:11, color:S.gold, fontFamily:"'Outfit',sans-serif" }}>
-                                  ✅ {pages} page{pages > 1 ? "s" : ""} {lang==="de"?"hochgeladen":lang==="it"?"caricata/e":lang==="en"?"uploaded":"chargée(s)"}
-                                </span>
-                                {/* Bouton Ajouter d'autres pages */}
-                                <label style={{
-                                  fontSize:11, color:S.blue||"#60A5FA", fontFamily:"'Outfit',sans-serif",
-                                  cursor:"pointer", textDecoration:"underline"
-                                }}>
-                                  + {lang==="de"?"Weitere Seiten":lang==="it"?"Altre pagine":lang==="en"?"Add more pages":"Ajouter pages"}
-                                  <input type="file" accept="image/*,application/pdf,.pdf" multiple
-                                    style={{ display:"none" }}
-                                    onChange={(e) => handleUpload(doc.id, e)} />
-                                </label>
-                                <button onClick={() => { setUploads(u => ({...u, [doc.id]: null})); setChecked(c=>({...c,[doc.id]:false})); setOcrStatus(s=>({...s,[doc.id]:null})); }}
-                                  style={{ fontSize:10, color:S.muted, background:"none", border:"none", cursor:"pointer",
-                                           fontFamily:"'Outfit',sans-serif", padding:0 }}>
-                                  ✕ {lang==="de"?"Löschen":lang==="it"?"Elimina":lang==="en"?"Delete":"Supprimer"}
-                                </button>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        ))}
+        )}
 
-        {/* SPACER pour le bouton fixe */}
-        <div style={{ height: 80 }} />
-      </div>
-
-      {/* BOUTON CTA FIXE EN BAS */}
-      <div style={{
-        position:"fixed", bottom:0, left:0, right:0, zIndex:100,
-        background:`linear-gradient(transparent, ${S.bg} 30%)`,
-        padding:"24px 20px 28px",
-      }}>
-        <div style={{ maxWidth: 640, margin:"0 auto" }}>
-          <button
-            onClick={async () => {
-              if (Object.keys(allOcrResults).length > 0 && !advisorData) {
-                setAdvisorLoading(true);
-                try {
-                  const storeSnap = useStore.getState(); const allData = storeSnap?.getAll ? storeSnap.getAll() : {};
-                  const advice = await genererQuestionsIA(allOcrResults, allData, lang);
-                  setAdvisorData(advice);
-                  if (advice?.questions?.length > 0) { setAdvisorLoading(false); setShowAdvisor(true); return; }
-                } catch(e) { console.warn("Advisor error:", e); }
-                setAdvisorLoading(false);
-              }
-              setScreen("form");
-            }}
-            style={{
-              width:"100%", padding:"18px 24px",
-              background: canProceed
-                ? `linear-gradient(135deg, ${S.gold}, #D4B55A)`
-                : S.card,
-              color: canProceed ? S.bg : S.textDim,
-              border: canProceed ? "none" : `1px solid ${S.border}`,
-              borderRadius: 14, cursor:"pointer",
-              fontFamily:"'Outfit',sans-serif", fontSize:16, fontWeight:700,
-              boxShadow: canProceed ? `0 8px 32px rgba(201,168,76,0.3)` : "none",
-              transition:"all 0.3s",
-            }}>
-            {L(labels.proceed)}
-            {uploadCount > 0 && (
-              <span style={{ marginLeft:8, fontSize:12, opacity:0.8, fontWeight:400 }}>
-                · {uploadCount} fichier{uploadCount > 1 ? "s" : ""} prêt{uploadCount > 1 ? "s" : ""}
+        {/* ══════════════════════════════════════════════════════════
+            RÉSUMÉ OCR — ce qui a été extrait
+        ═══════════════════════════════════════════════════════════ */}
+        {(identiteOCR.nom || totalOcrDone > 0) && (
+          <div style={{ padding:"14px 16px", borderRadius:12, background:S.greenDim, border:`1px solid rgba(52,211,153,0.25)`, marginBottom:16, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+            {(identiteOCR.nom || identiteManuelle.nom) && (
+              <span style={{ fontSize:13, color:S.green, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                👤 {identiteOCR.prenom || identiteManuelle.prenom} {identiteOCR.nom || identiteManuelle.nom}
+                {(identiteOCR.no_contribuable || identiteManuelle.no_contribuable) && ` · N° ${identiteOCR.no_contribuable || identiteManuelle.no_contribuable}`}
               </span>
             )}
+            {totalOcrDone > 0 && (
+              <span style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif" }}>
+                ✨ {totalOcrDone} document{totalOcrDone > 1 ? "s" : ""} analysé{totalOcrDone > 1 ? "s" : ""}
+              </span>
+            )}
+            {!identiteConnue && totalUploaded > 0 && !showIdentiteForm && (
+              <button onClick={() => setShowIdentiteForm(true)}
+                style={{ fontSize:11, color:S.gold, background:"none", border:`1px solid rgba(201,168,76,0.4)`, borderRadius:6, padding:"3px 10px", cursor:"pointer", fontFamily:"'Outfit',sans-serif" }}>
+                + {L({ fr:"Saisir identité", de:"Identität eingeben", en:"Enter identity" })}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
+            VUE DÉTAIL PAR CATÉGORIE — ajout ciblé par type
+        ═══════════════════════════════════════════════════════════ */}
+        {(view === "detail" || totalUploaded > 0) && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", fontWeight:600, letterSpacing:"0.05em", textTransform:"uppercase" }}>
+                {L({ fr:"Ajouter par type de document", de:"Nach Dokumenttyp hinzufügen", en:"Add by document type" })}
+              </div>
+              <button onClick={() => setView(view === "detail" ? "drop" : "detail")}
+                style={{ fontSize:11, color:S.gold, background:"none", border:`1px solid rgba(201,168,76,0.3)`, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"'Outfit',sans-serif" }}>
+                {view === "detail" ? "▲" : "▼"}
+              </button>
+            </div>
+
+            {cats.map(cat => (
+              <div key={cat} style={{ marginBottom:12 }}>
+                <div style={{ fontSize:11, color:S.muted, fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:6, paddingLeft:4 }}>
+                  {cat}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:8 }}>
+                  {docs.filter(d => d.cat === cat).map(doc => {
+                    const hasUpload = uploads[doc.id]?.length > 0;
+                    const status = ocrLabel(doc.id);
+                    const pageCount = uploads[doc.id]?.length || 0;
+
+                    return (
+                      <div key={doc.id}
+                        style={{
+                          padding:"12px 14px",
+                          borderRadius:12,
+                          background: hasUpload ? `rgba(52,211,153,0.05)` : doc.highlight ? `rgba(201,168,76,0.04)` : S.card,
+                          border: `1px solid ${hasUpload ? "rgba(52,211,153,0.25)" : doc.highlight ? "rgba(201,168,76,0.2)" : S.border}`,
+                          transition:"all 0.2s",
+                        }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                          <span style={{ fontSize:18 }}>{doc.icon}</span>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, fontWeight:600, color: hasUpload ? S.green : doc.highlight ? S.gold : S.cream, fontFamily:"'Outfit',sans-serif", lineHeight:1.3 }}>
+                              {doc.label}
+                            </div>
+                            {status && (
+                              <div style={{ fontSize:10, color:status.color, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                                {status.text}
+                              </div>
+                            )}
+                            {hasUpload && !status && (
+                              <div style={{ fontSize:10, color:S.green, fontFamily:"'Outfit',sans-serif" }}>
+                                ✓ {pageCount} page{pageCount > 1 ? "s" : ""}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* Boutons upload compacts */}
+                        <div style={{ display:"flex", gap:6 }}>
+                          <label style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:4, padding:"7px 0", borderRadius:8, background:S.surface, border:`1px solid ${S.border}`, cursor:"pointer", fontSize:11, color:S.gold, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                            📷
+                            <input type="file" accept="image/*" capture="environment" multiple style={{ display:"none" }}
+                              onChange={e => handleUpload(doc.id, e)} />
+                          </label>
+                          <label style={{ flex:2, display:"flex", alignItems:"center", justifyContent:"center", gap:4, padding:"7px 0", borderRadius:8, background:S.surface, border:`1px solid ${S.border}`, cursor:"pointer", fontSize:11, color:S.textDim, fontFamily:"'Outfit',sans-serif" }}>
+                            📎 {L({ fr:"Fichier(s)", de:"Datei(en)", en:"File(s)" })}
+                            <input type="file" accept="image/*,application/pdf" multiple style={{ display:"none" }}
+                              onChange={e => handleUpload(doc.id, e)} />
+                          </label>
+                          {hasUpload && (
+                            <button onClick={() => { setUploads(u=>({...u,[doc.id]:[]})); setOcrStatus(s=>({...s,[doc.id]:null})); }}
+                              style={{ padding:"7px 10px", borderRadius:8, background:"none", border:`1px solid ${S.border}`, color:S.muted, fontSize:11, cursor:"pointer" }}>
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Spacer pour le CTA fixe */}
+        <div style={{ height:80 }} />
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          CTA FIXE EN BAS
+      ═══════════════════════════════════════════════════════════ */}
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:`linear-gradient(transparent,${S.bg} 30%)`, padding:"20px 20px 28px" }}>
+        <div style={{ maxWidth:680, margin:"0 auto" }}>
+          <button
+            onClick={lancerConseiller}
+            disabled={advisorLoading || (totalUploaded === 0 && !identiteConnue)}
+            style={{
+              width:"100%", padding:"18px 24px",
+              background: totalUploaded > 0
+                ? `linear-gradient(135deg,${S.gold},#D4B55A)`
+                : S.card,
+              color: totalUploaded > 0 ? S.bg : S.textDim,
+              border: "none", borderRadius:14, cursor: totalUploaded > 0 ? "pointer" : "default",
+              fontFamily:"'Outfit',sans-serif", fontSize:16, fontWeight:700,
+              boxShadow: totalUploaded > 0 ? `0 8px 32px rgba(201,168,76,0.3)` : "none",
+              transition:"all 0.3s",
+            }}>
+            {advisorLoading
+              ? `⏳ ${L({ fr:"Le conseiller analyse…", de:"Berater analysiert…", en:"Advisor analysing…" })}`
+              : totalUploaded > 0
+                ? `🧠 ${L({ fr:"Analyser le dossier →", de:"Dossier analysieren →", en:"Analyse dossier →" })} (${totalUploaded} fichier${totalUploaded > 1 ? "s" : ""})`
+                : L({ fr:"Déposez vos documents pour commencer", de:"Dokumente hochladen zum Starten", en:"Upload documents to start" })
+            }
           </button>
-          {!canProceed && (
+          {totalUploaded === 0 && (
             <button onClick={() => setScreen("form")}
-              style={{ width:"100%", background:"none", border:"none", cursor:"pointer",
-                       color: S.textDim, fontSize:12, fontFamily:"'Outfit',sans-serif",
-                       marginTop:8, padding:4 }}>
-              {L(labels.skip)}
+              style={{ width:"100%", background:"none", border:"none", cursor:"pointer", color:S.textDim, fontSize:12, fontFamily:"'Outfit',sans-serif", marginTop:8, padding:4 }}>
+              {L({ fr:"Continuer sans document (saisie manuelle)", de:"Ohne Dokument weiter (manuelle Eingabe)", en:"Continue without documents (manual entry)" })}
             </button>
           )}
         </div>
