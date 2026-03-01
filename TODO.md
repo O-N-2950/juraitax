@@ -1,30 +1,35 @@
 # TODO.md — tAIx
 > PEP's Swiss SA · Bellevue 7 · 2950 Courgenay
-> Mis à jour : 1er mars 2026 — session UX B2B fix
+> Mis à jour : 1er mars 2026 — session cross-platform + persistence
 
 ---
 
-## 🔴 ACTION IMMÉDIATE — Railway Redeploy (5 min)
+## 🔴 TEST IMMÉDIAT — Déclaration papa
 
-**Le dist/ vient d'être mis à jour sur GitHub avec le fix UX B2B.**
-→ Ouvrir **railway.app** → projet juraitax → bouton **"Redeploy"**
-→ Tester le flux : B2B → login → checklist directe (plus de saisie client)
+URL : https://juraitax-app-production-f257.up.railway.app
 
-**Pour automatiser les futurs déploiements :**
-→ railway.app → Settings → Tokens → générer un token
-→ GitHub → juraitax → Settings → Secrets → Actions → RAILWAY_TOKEN = coller token
+**Flux à tester :**
+1. Welcome → "Commencer ma déclaration"
+2. Checklist → 📷 Photo → prendre photos UNE PAR UNE (ou galerie pour toutes)
+3. Vérifier : chaque photo apparaît dans la liste "en attente" avec son nom
+4. Quand TOUTES les photos sont là → "▶ Analyser N photos"
+5. Attendre ~2-4 min (35 photos = progress visible photo par photo)
+6. Formulaire pré-rempli → Résultat
+
+**Si ça plante :** message rouge s'affiche "Vos photos sont conservées — réessayez"
 
 ---
 
 ## 🔴 STRIPE — À FINALISER (30 min)
 
-- [ ] Ouvrir dashboard.stripe.com
-- [ ] Récupérer **pk_live_...** (clé PUBLIQUE — PAS sk_live_)
-- [ ] Créer Payment Link CHF 49 (particulier)
+- [ ] dashboard.stripe.com → récupérer **pk_live_...** (clé PUBLIQUE)
+- [ ] Créer Payment Link CHF 29 (lancement)
+- [ ] Créer Payment Link CHF 49 (standard)
 - [ ] Créer Payment Link CHF 49/an (abonnement)
-- [ ] Ajouter metadata : app=taix.ch, plan=particulier
-- [ ] Ajouter dans Railway variables :
+- [ ] Metadata : app=taix.ch, plan=particulier
+- [ ] Variables Railway :
   - VITE_STRIPE_PUBLISHABLE_KEY = pk_live_...
+  - VITE_STRIPE_PAYMENT_LINK_29 = https://buy.stripe.com/...
   - VITE_STRIPE_PAYMENT_LINK_49 = https://buy.stripe.com/...
   - VITE_STRIPE_PAYMENT_LINK_SUB = https://buy.stripe.com/...
 
@@ -32,63 +37,61 @@
 
 ## 🔴 SOLURIS — INTÉGRATION FISCALE (1 session)
 
-- [ ] Vérifier que LIFD (642.11), LHID (642.14), LPP (831.40), OPP3 sont dans la DB
-- [ ] Vérifier que les 26 lois cantonales fiscales sont scrapées
-- [ ] Créer dans Soluris : **POST /api/fiscal-query** (sans auth, clé TAIX_INTERNAL_KEY)
-- [ ] Intégrer dans tAIx FiscalAdvisor.js : appel Soluris pour citer les sources de loi
+- [ ] POST /api/fiscal-query dans Soluris (sans auth, clé TAIX_INTERNAL_KEY)
+- [ ] Intégrer dans FiscalAdvisor.js → citer sources de loi sous chaque déduction
 
 ---
 
 ## 🟠 MIGRATION INFOMANIAK (destination finale)
 
-- [ ] **Étape 1** : Compte Infomaniak + VPS-1 (~CHF 9/mois)
-- [ ] **Étape 2** : Transférer domaines taix.ch + juraitax.ch (code EPP, 24-48h)
-- [ ] **Étape 3** : DNS A record + CNAME www + MX auto + SSL Let's Encrypt
-- [ ] **Étape 4** : Resend email — DKIM/SPF, clé API re_xxxxx, contact@taix.ch
-- [ ] **Étape 5** : Build local → upload dist/ → public_html/
-- [ ] **Étape 6** : .htaccess React Router (toutes routes → index.html)
-- [ ] **Étape 7** : Backend Node.js + PostgreSQL (subscribers, magic_links)
-- [ ] **Étape 8** : Magic Link login (sans mot de passe) via Resend
-- [ ] **Étape 9** : Couper Railway après validation complète
+- [ ] Étape 1 : Compte Infomaniak + VPS-1 (~CHF 9/mois)
+- [ ] Étape 2 : Transférer domaines taix.ch + juraitax.ch (code EPP)
+- [ ] Étape 3 : DNS A + CNAME www + SSL Let's Encrypt
+- [ ] Étape 4 : Resend email — DKIM/SPF, contact@taix.ch
+- [ ] Étape 5 : Build local → upload dist/ → public_html/
+- [ ] Étape 6 : .htaccess React Router
+- [ ] Étape 7 : Backend Node.js + PostgreSQL (subscribers, magic_links)
+- [ ] Étape 8 : Magic Link login (sans mot de passe)
+- [ ] Étape 9 : Couper Railway après validation
 
 ---
 
-## 🟠 TEST AVEC PAPA — En attente Railway Redeploy
+## 🟢 AMÉLIORATIONS UX FUTURES
 
-URL : https://juraitax-app-production-f257.up.railway.app
-
-Flux à tester (nouveau flux B2B) :
-1. Welcome → bouton "Espace fiduciaire"
-2. B2B Login → email contact@winwin.swiss → "Ouvrir un nouveau dossier →"
-   → **directement sur la checklist** (plus de saisie nom/prénom)
-3. Checklist → uploader DI 2024 en plusieurs pages
-   → vérifier compteur "✅ 15 pages chargées"
-   → vérifier badge "✨ Données extraites" (OCR identifie le client)
-4. → Conseiller IA → Formulaire → Résultat
-5. Vérifier bandeau vert : "💼 WIN WIN Finance Group — [Nom OCR]"
-   → Vérifier N° contribuable affiché si extrait
+- [ ] Toast de confirmation après analyse OCR réussie
+- [ ] Résumé des données extraites avant de passer au formulaire
+- [ ] Mode hors-ligne partiel (service worker)
+- [ ] Cantons NE, BE, GE, VD, TI (après validation JU)
 
 ---
 
-## 🟢 FONCTIONNALITÉS FUTURES
+## ✅ FAIT CETTE SESSION (1er mars 2026)
 
-### Cantons supplémentaires (après validation JU)
-- [ ] Neuchâtel (NE), Berne (BE), Genève (GE), Vaud (VD), Tessin (TI)
+### ChecklistDocs v6 — cross-platform
+- [x] Architecture 2 phases strictes : COLLECTE (aucun OCR) → ANALYSE (bouton CTA)
+- [x] **Fix iOS caméra** : key rotation `camKeys[inputId]` → remontage DOM → caméra rouvre
+- [x] **Fix 35 photos plantaient** : compression canvas 1800px/JPEG82% + try/catch global + progress par fichier
+- [x] **Fix drag & drop desktop** : addFiles useCallback stable
+- [x] safe-area-inset-bottom → CTA visible sur iPhone avec home indicator
+- [x] touchAction:"manipulation" → suppression délai 300ms iOS
+- [x] minHeight:44px partout (Apple HIG)
+- [x] Toast "📷 N photos ajoutées" → feedback immédiat
+- [x] Message erreur rouge si crash OCR ("Vos photos sont conservées")
 
-### Moutier 2027 (ne rien faire avant jan 2027)
-- [ ] Landing taix.ch/moutier, code MOUTIER2027 = CHF 39
+### store.js v2 — Persistence localStorage
+- [x] Sauvegarde automatique fields/lang/canton/mode à chaque modification (300ms debounce)
+- [x] Restauration au démarrage (expiration 12 mois)
+- [x] reset() efface localStorage · resetDossier() garde lang/mode
+- [x] hasSavedDossier() + savedAt() helpers
 
----
+### screens.jsx v11 — Bannière reprise
+- [x] Bannière verte "📂 Dossier en cours — Sauvegardé le [date]" sur Welcome
+- [x] Bouton "Reprendre →" → screen checklist directement
+- [x] Bouton "Nouveau" → reset complet
 
-## ✅ FAIT CETTE SESSION (1er mars 2026 — UX B2B fix)
-
-- [x] **screens.jsx v10** — Suppression saisie manuelle client (nom/prénom/N° contribuable) en mode B2B fiduciaire
-- [x] **Flux B2B simplifié** : login → checklist directe (1 étape au lieu de 2)
-- [x] **Info-box OCR** sur page B2B : explication identification automatique
-- [x] **Bandeau résultat enrichi** : nom OCR + N° contribuable si extrait
-- [x] **Reset dossier** : fields:{} réinitialisé à chaque nouveau client
-- [x] **Build + dist/ committé** sur GitHub (prêt pour Railway Redeploy)
-- [x] CONTEXT.md v6.1 + TODO.md mis à jour
+### Documentation
+- [x] CONTEXT.md v6.2 — bugs résolus documentés avec code
+- [x] TODO.md mis à jour
 
 ---
 
@@ -102,3 +105,4 @@ Flux à tester (nouveau flux B2B) :
 | WinWin tel | 032 466 11 00 |
 | WinWin email | contact@winwin.swiss |
 | Build local | cd juraitax && npm run build |
+| Deploy | git push origin main (GitHub Actions automatique) |
