@@ -5,6 +5,7 @@ import { APP, PRICING } from "./config";
 import { calculerDeclaration } from "./engine";
 import { useT } from "./i18n";
 import LangSelector from "./LangSelector";
+import { genererRapportFiscal } from "./RapportFiscal.js";
 
 // ═══════════════════════════════════════════════
 //  ÉCRAN WELCOME
@@ -471,7 +472,7 @@ export function Paywall() {
 //  RÉSULTAT COMPLET — traduit
 // ═══════════════════════════════════════════════
 export function Result() {
-  const { calcResult: r, getAll, setScreen, mode, b2bUser, clientDossier, lang } = useStore();
+  const { calcResult: r, getAll, setScreen, mode, b2bUser, clientDossier, lang, cantonConfig } = useStore();
   const t = useT(lang);
   const data = getAll();
   const isB2B = mode === "b2b";
@@ -582,6 +583,9 @@ export function Result() {
         <div className="fu5" style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
           <Btn style={{flex:1, minWidth:180}} onClick={() => alert("PDF DI-2025 en cours de génération…")}>
             📄 {t("result_download_pdf")}
+          </Btn>
+          <Btn style={{flex:1, minWidth:180, background:"#1A1A2E", border:"1px solid #C9A84C"}} onClick={() => genererRapportFiscal({ data, result: r, lang, canton: cantonConfig?.canton || "JU", b2bFirm: isB2B ? b2bUser?.firm : null })}>
+            📋 {t("result_download_rapport")}
           </Btn>
           {isB2B && (
             <Btn variant="dark" onClick={() => setScreen("b2b")}>
