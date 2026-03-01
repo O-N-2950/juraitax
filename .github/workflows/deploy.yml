@@ -7,6 +7,7 @@ on:
       - 'CONTEXT.md'
       - 'TODO.md'
       - '.railway-deploy'
+      - '.deploy-trigger'
 
 jobs:
   deploy:
@@ -31,5 +32,5 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: npx @railway/cli@latest up --detach
+        run: npx @railway/cli@latest up --detach --service juraitax-app
 
