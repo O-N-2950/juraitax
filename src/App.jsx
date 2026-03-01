@@ -2,10 +2,23 @@ import { useStore } from "./store";
 import { Welcome, CourrierScreen, B2BLogin, Loading, Paywall, Result } from "./screens";
 import Form from "./Form";
 import { useEffect } from "react";
+import { detectCantonConfig, applyCantonTheme } from "./cantonDetector";
 
 export default function App() {
-  const screen = useStore(s => s.screen);
+  const screen        = useStore(s => s.screen);
+  const setCantonConfig = useStore(s => s.setCantonConfig);
+
+  // ── Détection canton + langue au démarrage ───────────────
+  useEffect(() => {
+    const cfg = detectCantonConfig();
+    setCantonConfig(cfg);
+    applyCantonTheme(cfg.accent);
+    // Titre de l'onglet dynamique
+    document.title = `${cfg.appName} — Déclaration fiscale 2025`;
+  }, []);
+
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
+
   switch(screen) {
     case "welcome":  return <Welcome />;
     case "courrier": return <CourrierScreen />;
