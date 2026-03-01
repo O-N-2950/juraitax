@@ -1,140 +1,136 @@
-# tAIx — TODO & CONTEXT
-> PEP's Swiss SA · Bellevue 7 · 2950 Courgenay · contact@taix.ch
-> Hébergement cible : **Infomaniak** (migration en cours depuis Railway/test)
+# TODO.md — tAIx
+> PEP's Swiss SA · Bellevue 7 · 2950 Courgenay
+> Mis à jour : 1er mars 2026 — fin de session
 
 ---
 
-## 🏗 ARCHITECTURE ACTUELLE (mars 2026)
+## 🔴 ACTION IMMÉDIATE — Railway (10 min)
 
-- **Frontend** : React + Vite · 25 fichiers src · GitHub O-N-2950/juraitax
-- **Hébergement TEST** : Railway (juraitax-app-production-f257.up.railway.app) — TEMPORAIRE
-- **Hébergement CIBLE** : Infomaniak (suivre TODO étapes 1-9 ci-dessous)
-- **Clé Anthropic** : dans Railway variables + à mettre dans Infomaniak
-- **Clé Stripe** : sk_live_51R6rR9... · PK à ajouter dans variables
+**Le dist/ est dans le repo GitHub mais Railway sert l'ancien build.**
+→ Ouvrir **railway.app** → projet juraitax → bouton **"Redeploy"**
+→ Attendre 2-3 min → tester sur iPhone
 
----
-
-## ✅ FAIT — Fonctionnalités complètes
-
-### Core
-- Moteur fiscal JU 2025 (ICC + communal + IFD + fortune)
-- OCR 12 types de documents (Claude Vision)
-- FiscalAdvisor — conseiller IA temps réel (questions ciblées + alertes)
-- AdvisorScreen — UI questions interactives 7 langues
-- SubsidyWinWin — détection subsides LAMal + 3a non maximisé + redirection WinWin FINMA
-- PrintContribuable — impression A4 copie contribuable
-- RapportFiscal + JustificatifsPDF — PDF téléchargeables
-- WowEffects — confetti, compteur animé, watermark cantonal, FadeIn
-- TrustBadges — hébergement Suisse, LPD, FINMA, 7 langues
-- DepotDeclaration — 4 cantons avec adresses et délais officiels
-- B2B module — fiduciaires (accès illimité, contact@winwin.swiss gratuit)
-- Stripe paiement CHF 49 (configuration à finaliser)
-- PWA — manifest.json + icônes + raccourci écran mobile
-- Mode B2C + B2B + Courrier postal (seniors)
-- Arguments marketing : 20min vs 3h, erreur humaine, jurisprudence suisse
-
-### Données
-- Communes Canton du Jura complètes
-- Multiplicateurs communaux 2025
-- Barèmes subsides LAMal 2025
-- Seuils 3a (salarié CHF 7'056 / indépendant CHF 36'288)
+**Pour automatiser les futurs déploiements :**
+→ railway.app → Settings → Tokens → générer un token
+→ GitHub → juraitax → Settings → Secrets → Actions → RAILWAY_TOKEN = coller token
+→ Après ça, chaque commit déclenche un déploiement automatique
 
 ---
 
-## 🔴 PRIORITÉ — Soluris x tAIx (intégration RAG fiscal)
+## 🔴 STRIPE — À FINALISER (30 min)
 
-### Contexte
-Soluris (repo O-N-2950/soluris) est notre moteur juridique RAG :
-- PostgreSQL + pgvector (embeddings Cohere 1024 dim)
-- Fedlex : 15 codes prioritaires (CO, CC, CP, LP, LTF...)
-- Jurisprudence : 175k+ décisions (ATF, BGer, cantons romands)
-- FastAPI backend avec endpoint /api/chat (jurisdiction + legal_domain filters)
-
-### Ce qu'il faut faire pour connecter Soluris à tAIx
-- [ ] **Ajouter les lois fiscales cantonales dans Soluris** :
-  - LIFD (Loi fédérale sur l'impôt fédéral direct — RS 642.11)
-  - LHID (Loi fédérale sur l'harmonisation — RS 642.14)
-  - Loi fiscale canton du Jura (RS/JU 641.11)
-  - Circulaires AFC (déductions, barèmes, jurisprudence fiscale)
-  - ATF fiscaux : recherche domaine "droit_fiscal" dans entscheidsuche
-- [ ] **Créer endpoint Soluris dédié tAIx** (sans auth, clé interne) :
-  ```python
-  POST /api/fiscal-query
-  { "question": "...", "canton": "JU", "annee": 2025 }
-  → { "reponse": "...", "sources": [...], "confidence": 0.87 }
-  ```
-- [ ] **Intégrer dans FiscalAdvisor.js** :
-  - Quand l'IA génère une question → interroger Soluris pour contexte légal exact
-  - Afficher la source de loi citée sous chaque question/déduction
-  - Ex: "Pilier 3a — art. 82 LPP · max CHF 7'056 (circ. AFC 2025)"
-
-### Bénéfice concret
-tAIx devient le seul outil fiscal suisse capable de citer la jurisprudence exacte
-pour chaque déduction suggérée. Différenciateur majeur vs JuraTax officiel.
+- [ ] Ouvrir dashboard.stripe.com
+- [ ] Récupérer **pk_live_...** (clé PUBLIQUE — PAS sk_live_)
+- [ ] Créer Payment Link CHF 49 (particulier)
+- [ ] Créer Payment Link CHF 49/an (abonnement)
+- [ ] Ajouter metadata : app=taix.ch, plan=particulier
+- [ ] Ajouter dans Railway variables :
+  - VITE_STRIPE_PUBLISHABLE_KEY = pk_live_...
+  - VITE_STRIPE_PAYMENT_LINK_49 = https://buy.stripe.com/...
+  - VITE_STRIPE_PAYMENT_LINK_SUB = https://buy.stripe.com/...
 
 ---
 
-## 🔴 CAMPAGNE MOUTIER — Marketing prioritaire (action jan 2027)
+## 🔴 SOLURIS — INTÉGRATION FISCALE (1 session)
 
-### Contexte légal — vérifié sources officielles
-- 1er janvier 2026 : Moutier officiellement Canton du Jura
-- DI 2025 : Les Prévôtois remplissent encore une DI bernoise (délai 15 mars 2026)
-- PREMIERE DI JURASSIENNE : Année fiscale 2026, déposée en 2027
-- Source : https://www.moutierdanslejura.ch/thematiques/fiscalite.html
+Soluris est en train d'ingérer les lois fiscales (prompt envoyé).
+Une fois Soluris mis à jour :
 
-### Plan commercial
-- Cible : ~8000 habitants de Moutier
-- Prix spécial : CHF 39 (au lieu de 49)
-- Timing : lancer en janvier 2027
-- Email Commune : administration@moutier.ch
-- Module Migration Berne→Jura : OCR ancienne DI bernoise → pré-remplissage adapté
-- Code promo MOUTIER2027 sur Stripe
+- [ ] Vérifier que LIFD (642.11), LHID (642.14), LPP (831.40), OPP3 sont dans la DB
+- [ ] Vérifier que les 26 lois cantonales fiscales sont scrapées
+- [ ] Créer dans Soluris : **POST /api/fiscal-query** (sans auth, clé TAIX_INTERNAL_KEY)
+- [ ] Intégrer dans tAIx FiscalAdvisor.js : appel Soluris pour citer les sources de loi
+- [ ] Afficher sous chaque déduction : "Art. 82 LPP · ATF 148 II 121 · Circ. AFC n°18"
 
 ---
 
-## 🟠 MOYEN TERME
+## 🟠 MIGRATION INFOMANIAK (destination finale)
 
-### Migration Infomaniak (9 étapes — voir TODO séparé)
-- [ ] Étape 1 : Créer compte Infomaniak + VPS
-- [ ] Étape 2 : Transférer domaines taix.ch + juraitax.ch
-- [ ] Étape 3 : DNS + SSL
-- [ ] Étape 4 : Resend email (contact@taix.ch)
-- [ ] Étape 5 : Upload dist/ → public_html/
-- [ ] Étape 6 : Variables environnement (.env.production local)
-- [ ] Étape 7 : Backend Node.js + PostgreSQL (magic link + abonnements)
-- [ ] Étape 8 : Magic Link (login sans mot de passe)
-- [ ] Étape 9 : Couper Railway → tout sur Infomaniak
+Railway = test temporaire. Infomaniak = cible définitive.
 
-### Stripe à finaliser
-- [ ] Récupérer pk_live_... (pas sk_live_)
-- [ ] Créer Payment Links CHF 49 + CHF 49/an
-- [ ] Ajouter metadata app=taix.ch
-- [ ] Variables: VITE_STRIPE_PUBLISHABLE_KEY, VITE_STRIPE_PAYMENT_LINK_49
-
-### Scalabilité (objectif 1M requêtes)
-- Architecture actuelle : ~200 utilisateurs simultanés (suffisant pour lancement)
-- Pour 1M : CDN Cloudflare + Anthropic Enterprise key + Redis cache
-- Discussion Anthropic Enterprise quand > 1000 clients actifs
+- [ ] **Étape 1** : Compte Infomaniak + VPS-1 (~CHF 9/mois)
+- [ ] **Étape 2** : Transférer domaines taix.ch + juraitax.ch (code EPP, 24-48h)
+- [ ] **Étape 3** : DNS A record + CNAME www + MX auto + SSL Let's Encrypt
+- [ ] **Étape 4** : Resend email — DKIM/SPF, clé API re_xxxxx, contact@taix.ch
+- [ ] **Étape 5** : Build local → upload dist/ → public_html/
+- [ ] **Étape 6** : .htaccess React Router (toutes routes → index.html)
+- [ ] **Étape 7** : Backend Node.js + PostgreSQL (subscribers, magic_links)
+- [ ] **Étape 8** : Magic Link login (sans mot de passe) via Resend
+- [ ] **Étape 9** : Couper Railway après validation complète
 
 ---
 
-## 🟢 LONG TERME
+## 🟠 TEST AVEC PAPA — En attente Railway Redeploy
 
-- [ ] Cantons additionnels : NE, TI, ZH, BE (barèmes + communes)
-- [ ] Soluris RAG complet (175k jurisprudence) connecté à tAIx
-- [ ] Magic Link opérationnel
-- [ ] Application mobile native (React Native)
-- [ ] Rappels automatiques (mars/avril) via Resend
+URL : https://juraitax-app-production-f257.up.railway.app
+
+Flux à tester :
+1. Welcome → sélectionner langue fr
+2. Checklist → photographier DI 2024 **en plusieurs pages** (15 photos)
+   → vérifier compteur "✅ 15 pages chargées"
+   → vérifier "Analyse en cours… (3/15)"
+3. Photographier certificat de salaire
+4. Photographier extrait compte bancaire
+5. → Conseiller IA pose questions (FiscalAdvisor)
+   → Question subsides : "Bénéficiez-vous déjà de subsides LAMal ?"
+6. → Formulaire pré-rempli avec données OCR
+7. → Résultat avec montant impôt
+   → Vérifier bloc SubsidyWinWin (si papa éligible)
+   → Vérifier badge 3a si pas maximisé
+8. → Copie contribuable (imprimer)
 
 ---
 
-## 🔑 CLÉS ET COORDONNÉES
+## 🟢 FONCTIONNALITÉS FUTURES
 
-| Service | Valeur |
-|---------|--------|
-| Anthropic API | sk-ant-api03-HOt1pC... (dans Railway variables) |
-| Stripe secret | sk_live_51R6rR9... |
-| WinWin B2B email | contact@winwin.swiss (accès illimité gratuit) |
+### Cantons supplémentaires (après validation JU)
+- [ ] Neuchâtel (NE) — barèmes + communes
+- [ ] Tessin (TI) — barèmes + communes (italiano)
+- [ ] Berne (BE) — barèmes + communes (fr + de)
+- [ ] Genève (GE) — barèmes + communes
+- [ ] Vaud (VD) — barèmes + communes
+
+### Moutier 2027 (ne rien faire avant jan 2027)
+- [ ] Créer landing taix.ch/moutier
+- [ ] Module Migration Berne → Jura (OCR ancienne DI bernoise → pré-remplissage JU)
+- [ ] Code promo MOUTIER2027 = CHF 39 sur Stripe
+- [ ] Contact : administration@moutier.ch
+- [ ] Flyers imprimables guichet communal
+
+### Scalabilité 1M requêtes (objectif long terme)
+- Architecture actuelle : ~200 utilisateurs simultanés (suffisant lancement)
+- Évolution : CDN Cloudflare + Redis cache + Anthropic Enterprise key
+- À discuter avec Anthropic quand > 1000 clients actifs
+
+### Application mobile native
+- React Native (iOS + Android)
+- Après validation web + 100 clients payants
+
+---
+
+## ✅ FAIT CETTE SESSION (1er mars 2026)
+
+- [x] SubsidyWinWin.jsx — détection subsides LAMal + 3a + redirection WinWin FINMA
+- [x] FiscalAdvisor.js v2 — question subsides LAMal ajoutée au questionnaire
+- [x] screens.jsx v9 — SubsidyWinWin intégré dans Result screen
+- [x] i18n.js — arguments marketing "20min vs 3h" + "erreur humaine" (7 langues)
+- [x] ChecklistDocs.jsx v3 — **upload multi-pages** (plusieurs photos/fichiers par doc, OCR fusionné)
+- [x] JustificatifsPDF.js — bug spread operator fixé (build était cassé)
+- [x] GitHub Actions deploy.yml — workflow build auto
+- [x] CONTEXT.md v6.0 + TODO.md mis à jour
+- [x] Prompt Soluris rédigé — lois fiscales 26 cantons + LIFD + endpoints
+- [x] Diagnostiqué : Railway ne redéploie pas auto → besoin RAILWAY_TOKEN secret GitHub
+
+---
+
+## 🔑 RÉFÉRENCES RAPIDES
+
+| Ressource | Valeur |
+|-----------|--------|
+| App test | https://juraitax-app-production-f257.up.railway.app |
+| Repo | https://github.com/O-N-2950/juraitax |
+| Repo Soluris | https://github.com/O-N-2950/soluris |
 | WinWin tel | 032 466 11 00 |
-| WinWin adresse | Bellevue 7, 2950 Courgenay |
-| FINMA | F01042365 |
+| WinWin email | contact@winwin.swiss |
+| Stripe secret | sk_live_51R6rR9... (NE PAS exposer) |
+| Build local | cd juraitax && npm run build |
