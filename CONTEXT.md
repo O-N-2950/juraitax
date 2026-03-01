@@ -36,8 +36,8 @@
 - **CIBLE** : Infomaniak VPS (migration planifiée)
 
 ### Clés API
-- **Anthropic** : sk-ant-api03-HOt1pC... → variable Railway VITE_ANTHROPIC_API_KEY
-- **Stripe** : sk_live_51R6rR9... → variable Railway (jamais côté client)
+- **Anthropic** : env var Railway VITE_ANTHROPIC_API_KEY (ne jamais écrire la clé ici)
+- **Stripe** : env var Railway STRIPE_SECRET_KEY (ne jamais écrire la clé ici)
 - OCR via proxy Express /api/anthropic → évite CORS navigateur
 
 ---
