@@ -135,6 +135,36 @@ Nécessaire pour : Magic Link, abonnements, rappels annuels
 
 ---
 
+
+---
+
+## 🔴 CAMPAGNE MOUTIER — Marketing prioritaire (action jan 2027)
+
+### Contexte légal — vérifié sources officielles
+- **1er janvier 2026** : Moutier officiellement Canton du Jura
+- **DI 2025** : Les Prévôtois remplissent encore une DI **bernoise** (délai 15 mars 2026)
+- **PREMIERE DI JURASSIENNE** : Année fiscale **2026**, déposée en **2027**
+- Source : https://www.moutierdanslejura.ch/thematiques/fiscalite.html
+
+### Idée commerciale — "Bienvenue dans le Jura"
+- **Cible** : ~8000 habitants de Moutier
+- **Prix spécial** : CHF 39 (au lieu de 49) — premiere DI jurassienne
+- **Timing** : Lancer en **janvier 2027**
+- **Email Commune** : administration@moutier.ch — demander partenariat/relai
+
+### Todo technique avant jan 2027
+- [ ] Vérifier barèmes Berne vs Jura pour Moutier (taux communaux)
+- [ ] Module Migration Berne→Jura : OCR ancienne DI bernoise → pré-remplissage adapté
+- [ ] Note explicative dans app : premiere declaration jurassienne
+- [ ] Code promo MOUTIER2027 = CHF 39 sur Stripe (coupon)
+- [ ] Landing page : taix.ch/moutier
+- [ ] Contacter Commune de Moutier pour relai officiel
+- [ ] Flyers imprimables pour guichet communal
+
+### NE PAS FAIRE maintenant
+- DI 2025 des Prévôtois = encore bernoise = hors perimetre tAIx 2025
+- Ne pas cibler Moutier avant janvier 2027
+
 ## 🟠 MOYEN TERME (Q2-Q3 2026)
 
 - [ ] Module Neuchâtel (NE) complet
