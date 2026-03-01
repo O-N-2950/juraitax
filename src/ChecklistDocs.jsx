@@ -156,16 +156,22 @@ export function ChecklistScreen() {
   function showToast(msg) { setToast(msg); }
 
   // ═══════════════════════════════════════════════════════════════════
-  // PHASE 1 — COLLECTE
+  // PHASE 1 — COLLECTE : compression immédiate dès l'ajout
+  // 35 photos iPhone × 5MB → 35 × ~300KB = 10MB en mémoire (pas 175MB)
   // ═══════════════════════════════════════════════════════════════════
-  const addFiles = useCallback((fileList, forcedDocId) => {
+  const addFiles = useCallback(async (fileList, forcedDocId) => {
     const files = Array.from(fileList || []);
     if (!files.length) return;
-    const items = files.map(f => ({
-      file:  f,
-      docId: forcedDocId || classifyFile(f.name),
-      name:  f.name || "photo",
-      id:    `${Date.now()}_${Math.random()}`,
+    showToast(`⏳ ${files.length} photo${files.length>1?"s":""} en cours…`);
+    // Comprimer toutes les photos en parallèle immédiatement
+    const items = await Promise.all(files.map(async (f) => {
+      const compressed = await compressImage(f);
+      return {
+        file:  compressed,
+        docId: forcedDocId || classifyFile(f.name),
+        name:  f.name || "photo",
+        id:    `${Date.now()}_${Math.random()}`,
+      };
     }));
     setPending(p => [...p, ...items]);
     showToast(`📷 ${files.length} photo${files.length>1?"s":""} ajoutée${files.length>1?"s":""}`);
@@ -268,8 +274,8 @@ export function ChecklistScreen() {
           doneFiles++;
           setProgress({ done: doneFiles, total: totalFiles, label: file.name?.substring(0,24) || docId });
           try {
-            const compressed = await compressImage(file);
-            const res = await ocrDocument(compressed, docId);
+            // Photo déjà compressée à l'ajout — OCR direct
+            const res = await ocrDocument(file, docId);
             if (!res._error) merged = mergeOcr(merged, res);
           } catch (e) {
             console.warn("OCR file error:", e);
