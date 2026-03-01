@@ -20,28 +20,16 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useStore, SOURCE } from "./store";
 import { ocrDocument, fusionnerOCR, applyOCRToStore } from "./ocr";
 import { genererQuestionsIA } from "./FiscalAdvisor";
+
 import { AdvisorScreen } from "./AdvisorScreen";
 import { GlobalStyles, T as S } from "./ui";
 import LangSelector from "./LangSelector";
 import { useT } from "./i18n";
 
 // ── Classification par nom de fichier ─────────────────────────────────
-function classifyFile(filename) {
-  const n = (filename || "").toLowerCase();
-  if (/d[ée]claration|di[-_]?202[0-9]|di[-_]?prev|steuerk/.test(n)) return "di_prev";
-  if (/certificat.?salaire|lohnausweis|salary|cert[-_]?sal/.test(n)) return "cert_sal";
-  if (/\b3a\b|pilier.?3|saeule.?3/.test(n))                          return "3a";
-  if (/\blpp\b|rachat|pensionskasse|einkauf/.test(n))                 return "rachat_lpp";
-  if (/compte|bancaire|\bbank\b|iban|solde|extrait|konto/.test(n))   return "comptes";
-  if (/hypoth[eè]que|zinsen|mortgage/.test(n))                       return "hypotheque";
-  if (/immobilier|valeur.?fiscale|grundst[uü]ck/.test(n))            return "immobilier";
-  if (/entretien|travaux|renovation|unterhalt/.test(n))              return "entretien";
-  if (/m[eé]dical|facture.?m[eé]d|\barzt\b/.test(n))                return "medicaux";
-  if (/garde|cr[eè]che|\bkita\b|daycare/.test(n))                    return "garde";
-  if (/\bdon\b|\bspen\b|charit|association/.test(n))                 return "dons";
-  if (/leasing|dette|schuld/.test(n))                                return "leasing";
-  return "default";
-}
+// Classification supprimée — Claude identifie lui-même chaque document
+// On garde docId uniquement pour l'affichage UI des catégories
+function classifyFile() { return "auto"; }
 
 // ── Catalogue documents ───────────────────────────────────────────────
 const DOCS = () => ([
@@ -283,12 +271,14 @@ export function ChecklistScreen() {
     if (!Object.keys(results).length) { setScreen("form"); return; }
     setAdvisorLoading(true);
     try {
-      const storeData = useStore.getState().getAll?.() || {};
-      const advice    = await genererQuestionsIA(results, storeData, lang);
+      const storeData = useStore.getState().fields || {};
+      // Passe la fusion OCR + données store à Claude — il génère les questions lui-même
+      const donneesOCR = results._fusion || results;
+      const advice = await genererQuestionsIA(donneesOCR, storeData, lang);
       if (advice?.questions?.length > 0) {
         setAdvisorData(advice); setAdvisorLoading(false); setShowAdvisor(true); return;
       }
-    } catch {}
+    } catch (e) { console.error("launchAdvisor:", e); }
     setAdvisorLoading(false);
     setScreen("form");
   }
