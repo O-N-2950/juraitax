@@ -305,6 +305,20 @@ function getFallbackQuestions(data, lang = "fr") {
   };
   const t = T[lang] || T.fr;
 
+  // Subside LAMal — toujours demander
+  questions.push({ id: "q_subside", type: "oui_non",
+    question: lang==="de" ? "Erhalten Sie bereits Prämienverbilligung für Ihre Krankenkasse?" :
+              lang==="it" ? "Beneficiate già di sussidi per la cassa malati?" :
+              lang==="en" ? "Do you already receive health insurance premium subsidies?" :
+              "Bénéficiez-vous déjà de subsides pour votre caisse maladie (réduction de prime LAMal) ?",
+    explication: lang==="de" ? "Viele Berechtigte beantragen keine Prämienverbilligung." :
+                 lang==="it" ? "Molti aventi diritto non richiedono sussidi." :
+                 lang==="en" ? "Many eligible people do not claim premium reductions." :
+                 "Beaucoup de personnes éligibles ne demandent pas leurs subsides.",
+    impact_estime: "jusqu'à CHF 2'700/an",
+    deduction_cible: "beneficie_subside",
+    priorite: prio++ });
+
   // 3a — toujours demander si pas déjà renseigné
   if (!data.pilier_3a || data.pilier_3a === 0) {
     questions.push({ id: "q_3a", type: "oui_non", question: t.q3a, explication: t.q3a_exp,
