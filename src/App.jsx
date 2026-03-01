@@ -1,5 +1,6 @@
 import { useStore } from "./store";
 import { Welcome, CourrierScreen, B2BLogin, Loading, Paywall, Result } from "./screens";
+import { ChecklistScreen } from "./ChecklistDocs";
 import Form from "./Form";
 import { useEffect } from "react";
 import { detectCantonConfig, applyCantonTheme } from "./cantonDetector";
@@ -23,6 +24,7 @@ export default function App() {
     case "welcome":  return <Welcome />;
     case "courrier": return <CourrierScreen />;
     case "b2b":      return <B2BLogin />;
+    case "checklist": return <ChecklistScreen />;
     case "form":     return <Form />;
     case "loading":  return <Loading />;
     case "paywall":  return <Paywall />;
