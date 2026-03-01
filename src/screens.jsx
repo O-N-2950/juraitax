@@ -231,20 +231,15 @@ export function B2BLogin() {
   const t = useT(lang);
   const [email, setEmail] = useState("");
   const [firm, setFirm]   = useState("");
-  const [client, setClient] = useState({ nom:"", prenom:"", noContribuable:"" });
-  const [step, setStep]   = useState("login");
 
   const FREE_ACCOUNTS = ["contact@winwin.swiss","admin@juraitax.ch"];
   const isFree = FREE_ACCOUNTS.includes(email.toLowerCase());
 
   const handleLogin = () => {
+    // Réinitialise le dossier client — les infos seront extraites par OCR
+    useStore.setState({ clientDossier: null, fields: {} });
     setMode("b2b", { email, firm: firm || "WIN WIN Finance Group", plan: isFree ? "unlimited_free" : "cabinet" });
-    setStep("client");
-  };
-
-  const handleOpenDossier = () => {
-    useStore.setState({ clientDossier: client });
-    setScreen("form");
+    setScreen("checklist");
   };
 
   return (
@@ -256,79 +251,62 @@ export function B2BLogin() {
           ← {t("nav_back")}
         </button>
 
-        {step === "login" && (
-          <div className="fu">
-            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:36, color:S.cream, fontWeight:300, marginBottom:6 }}>{t("b2b_title")}</h2>
-            <p style={{ fontSize:13, color:S.textDim, fontFamily:"'Outfit',sans-serif", marginBottom:28 }}>Fiduciaires, conseillers financiers, partenaires agréés</p>
+        <div className="fu">
+          <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:36, color:S.cream, fontWeight:300, marginBottom:6 }}>{t("b2b_title")}</h2>
+          <p style={{ fontSize:13, color:S.textDim, fontFamily:"'Outfit',sans-serif", marginBottom:28 }}>Fiduciaires, conseillers financiers, partenaires agréés</p>
 
-            {["email","firm"].map((f,i) => (
-              <div key={f} style={{ marginBottom:16 }}>
-                <label style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", display:"block", marginBottom:6 }}>
-                  {f === "email" ? t("b2b_email_placeholder") : "Nom de la fiduciaire"}
-                </label>
-                <input value={f==="email"?email:firm} onChange={e=>f==="email"?setEmail(e.target.value):setFirm(e.target.value)}
-                  placeholder={f==="email"?"vous@fiduciaire.ch":"Ex: Fiduciaire Dupont SA"}
-                  style={{ width:"100%", padding:"13px 14px", borderRadius:10, border:`1px solid ${S.border}`, background:S.card, color:S.cream, fontSize:14, fontFamily:"'Outfit',sans-serif", outline:"none", boxSizing:"border-box" }}
-                  onFocus={e=>e.target.style.borderColor=S.gold} onBlur={e=>e.target.style.borderColor=S.border}
-                />
+          {["email","firm"].map((f) => (
+            <div key={f} style={{ marginBottom:16 }}>
+              <label style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", display:"block", marginBottom:6 }}>
+                {f === "email" ? t("b2b_email_placeholder") : "Nom de la fiduciaire"}
+              </label>
+              <input value={f==="email"?email:firm} onChange={e=>f==="email"?setEmail(e.target.value):setFirm(e.target.value)}
+                placeholder={f==="email"?"vous@fiduciaire.ch":"Ex: Fiduciaire Dupont SA"}
+                style={{ width:"100%", padding:"13px 14px", borderRadius:10, border:`1px solid ${S.border}`, background:S.card, color:S.cream, fontSize:14, fontFamily:"'Outfit',sans-serif", outline:"none", boxSizing:"border-box" }}
+                onFocus={e=>e.target.style.borderColor=S.gold} onBlur={e=>e.target.style.borderColor=S.border}
+              />
+            </div>
+          ))}
+
+          {isFree && email && (
+            <div style={{ padding:"10px 14px", borderRadius:10, background:S.greenDim, border:`1px solid rgba(52,211,153,0.25)`, marginBottom:16 }}>
+              <div style={{ fontSize:12, color:S.green, fontWeight:600, fontFamily:"'Outfit',sans-serif" }}>
+                ✓ {t("b2b_winwin_welcome")}
               </div>
-            ))}
+            </div>
+          )}
 
-            {isFree && email && (
-              <div style={{ padding:"10px 14px", borderRadius:10, background:S.greenDim, border:`1px solid rgba(52,211,153,0.25)`, marginBottom:16 }}>
-                <div style={{ fontSize:12, color:S.green, fontWeight:600, fontFamily:"'Outfit',sans-serif" }}>
-                  ✓ {t("b2b_winwin_welcome")}
-                </div>
+          {/* Info OCR automatique */}
+          <div style={{ padding:"12px 14px", borderRadius:10, background:"rgba(201,168,76,0.06)", border:`1px solid rgba(201,168,76,0.2)`, marginBottom:20, display:"flex", gap:10, alignItems:"flex-start" }}>
+            <span style={{ fontSize:18, flexShrink:0 }}>📎</span>
+            <div>
+              <div style={{ fontSize:12, fontWeight:600, color:S.gold, fontFamily:"'Outfit',sans-serif", marginBottom:2 }}>
+                Identification automatique par OCR
               </div>
-            )}
-
-            <Btn full onClick={handleLogin} disabled={!email}>Accéder au tableau de bord</Btn>
-
-            <div style={{ marginTop:24, padding:"16px", borderRadius:10, background:S.card, border:`1px solid ${S.border}` }}>
-              <div style={{ fontSize:11, fontWeight:600, color:S.gold, fontFamily:"'Outfit',sans-serif", marginBottom:8 }}>TARIFS B2B 2025</div>
-              {[
-                { plan:"Solo",      price:"CHF 490/an",    quota:"20 déclarations" },
-                { plan:"Cabinet",   price:"CHF 990/an",    quota:"60 déclarations" },
-                { plan:"Unlimited", price:"CHF 1'990/an",  quota:"Illimité" },
-              ].map(p => (
-                <div key={p.plan} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:`1px solid ${S.border}` }}>
-                  <span style={{ fontSize:12, color:S.text, fontFamily:"'Outfit',sans-serif" }}>{p.plan} — {p.quota}</span>
-                  <span style={{ fontSize:12, color:S.gold, fontWeight:600, fontFamily:"'Outfit',sans-serif" }}>{p.price}</span>
-                </div>
-              ))}
+              <div style={{ fontSize:11, color:S.textDim, fontFamily:"'Outfit',sans-serif", lineHeight:1.5 }}>
+                Uploadez directement les documents du client — tAIx extrait automatiquement le nom, prénom et numéro de contribuable.
+              </div>
             </div>
           </div>
-        )}
 
-        {step === "client" && (
-          <div className="fu">
-            <div style={{ padding:"12px 16px", borderRadius:10, background:S.greenDim, border:`1px solid rgba(52,211,153,0.25)`, marginBottom:20 }}>
-              <div style={{ fontSize:12, color:S.green, fontFamily:"'Outfit',sans-serif" }}>
-                ✓ {email} — {isFree ? t("b2b_winwin_welcome") : "Plan Cabinet"}
-              </div>
-            </div>
-            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, color:S.cream, fontWeight:300, marginBottom:6 }}>{t("b2b_new_dossier")}</h2>
+          <Btn full onClick={handleLogin} disabled={!email} style={{ fontSize:15, padding:"16px" }}>
+            📂 Ouvrir un nouveau dossier →
+          </Btn>
+
+          <div style={{ marginTop:24, padding:"16px", borderRadius:10, background:S.card, border:`1px solid ${S.border}` }}>
+            <div style={{ fontSize:11, fontWeight:600, color:S.gold, fontFamily:"'Outfit',sans-serif", marginBottom:8 }}>TARIFS B2B 2025</div>
             {[
-              { key:"prenom", label:t("field_prenom"), ph:"André" },
-              { key:"nom",    label:t("field_nom"),    ph:"Neukomm" },
-              { key:"noContribuable", label:t("field_no_contribuable"), ph:"Ex: 78234910" },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom:14 }}>
-                <label style={{ fontSize:12, color:S.textDim, fontFamily:"'Outfit',sans-serif", display:"block", marginBottom:6 }}>{f.label}</label>
-                <input value={client[f.key]||""} onChange={e=>setClient(p=>({...p,[f.key]:e.target.value}))} placeholder={f.ph}
-                  style={{ width:"100%", padding:"13px 14px", borderRadius:10, border:`1px solid ${S.border}`, background:S.card, color:S.cream, fontSize:14, fontFamily:"'Outfit',sans-serif", outline:"none", boxSizing:"border-box" }}
-                  onFocus={e=>e.target.style.borderColor=S.gold} onBlur={e=>e.target.style.borderColor=S.border}
-                />
+              { plan:"Solo",      price:"CHF 490/an",    quota:"20 déclarations" },
+              { plan:"Cabinet",   price:"CHF 990/an",    quota:"60 déclarations" },
+              { plan:"Unlimited", price:"CHF 1'990/an",  quota:"Illimité" },
+            ].map(p => (
+              <div key={p.plan} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:`1px solid ${S.border}` }}>
+                <span style={{ fontSize:12, color:S.text, fontFamily:"'Outfit',sans-serif" }}>{p.plan} — {p.quota}</span>
+                <span style={{ fontSize:12, color:S.gold, fontWeight:600, fontFamily:"'Outfit',sans-serif" }}>{p.price}</span>
               </div>
             ))}
-            <div style={{ marginTop:20, display:"flex", gap:10 }}>
-              <Btn variant="ghost" onClick={()=>setStep("login")}>← {t("nav_back")}</Btn>
-              <Btn style={{flex:1}} onClick={handleOpenDossier} disabled={!client.prenom||!client.nom}>
-                Ouvrir le dossier →
-              </Btn>
-            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -488,9 +466,10 @@ export function Result() {
   const t = useT(lang);
   const data = getAll();
   const isB2B = mode === "b2b";
-  const nomClient = isB2B && clientDossier
-    ? `${clientDossier.prenom} ${clientDossier.nom}`
-    : `${data.prenom||""} ${data.nom||""}`;
+  // En B2B, priorité aux données OCR extraites des documents (data vient de l'OCR)
+  // clientDossier est null depuis la nouvelle UX — l'OCR identifie le client
+  const nomOCR = `${data.prenom||""} ${data.nom||""}`.trim();
+  const nomClient = nomOCR || (clientDossier ? `${clientDossier.prenom} ${clientDossier.nom}` : "Client");
 
   return (
     <div style={{ minHeight:"100vh", background:S.bg, padding:"32px 20px 80px" }}>
@@ -501,9 +480,16 @@ export function Result() {
 
         {isB2B && (
           <div className="fu" style={{ padding:"10px 16px", borderRadius:10, background:S.greenDim, border:`1px solid rgba(52,211,153,0.25)`, marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize:12, color:S.green, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
-              💼 {b2bUser?.firm} — {nomClient}
-            </span>
+            <div>
+              <span style={{ fontSize:12, color:S.green, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                💼 {b2bUser?.firm} — {nomClient || "Client identifié par OCR"}
+              </span>
+              {data.no_contribuable && (
+                <div style={{ fontSize:11, color:S.textDim, fontFamily:"'Outfit',sans-serif", marginTop:2 }}>
+                  N° contribuable : {data.no_contribuable}
+                </div>
+              )}
+            </div>
             <span style={{ fontSize:11, color:S.muted, fontFamily:"'Outfit',sans-serif" }}>Plan: Illimité gratuit</span>
           </div>
         )}
