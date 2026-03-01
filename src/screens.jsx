@@ -8,6 +8,8 @@ import LangSelector from "./LangSelector";
 import { genererRapportFiscal } from "./RapportFiscal.js";
 import { genererJustificatifs } from "./JustificatifsPDF.js";
 import { TrustBanner, TrustBlock, TrustFooter } from "./TrustBadges";
+import { AnimatedAmount, Confetti, CantonWatermark, FadeIn, SavingsBadge } from "./WowEffects";
+import { imprimerCopieContribuable } from "./PrintContribuable";
 import { DepotDeclaration } from "./DepotDeclaration";
 
 // ═══════════════════════════════════════════════
@@ -490,6 +492,7 @@ export function Result() {
   return (
     <div style={{ minHeight:"100vh", background:S.bg, padding:"32px 20px 80px" }}>
       <GlobalStyles />
+      <Confetti active={true} />
       <div style={{ position:"fixed", top:16, right:16, zIndex:100 }}><LangSelector /></div>
       <div style={{ maxWidth:600, margin:"0 auto" }}>
 
@@ -507,8 +510,9 @@ export function Result() {
             {nomClient.trim() || "Contribuable"} · {data.commune} · {APP.year}
           </div>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:58, color:S.cream, fontWeight:300, lineHeight:1 }}>
-            CHF {r?.impotTotal?.toLocaleString("fr-CH")}
+            <AnimatedAmount target={r?.impotTotal||0} color={S.cream} duration={2000} />
           </div>
+          <SavingsBadge lang={lang} />
           <div style={{ fontSize:12, color:S.textDim, marginTop:8, fontFamily:"'Outfit',sans-serif" }}>{t("result_title")}</div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginTop:20 }}>
@@ -607,6 +611,9 @@ export function Result() {
               🔄 S'abonner CHF 49/an
             </Btn>
           )}
+          <Btn variant="ghost" onClick={() => imprimerCopieContribuable({ data, result: r, lang, canton: cantonConfig?.canton||"JU" })}>
+            🖨️ Copie contribuable
+          </Btn>
           <Btn variant="ghost" onClick={() => { useStore.getState().reset(); }}>
             ↺ Recommencer
           </Btn>
