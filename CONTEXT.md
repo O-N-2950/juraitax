@@ -162,3 +162,26 @@ function compressImage(file, maxDim = 1800, quality = 0.82) {
 
 ## 📅 MOUTIER 2027
 Ne rien faire avant janvier 2027 · Prix CHF 39 · code MOUTIER2027
+
+---
+
+## 📸 PHOTOS — COMPORTEMENT iOS (important pour les clients)
+
+### Pourquoi les photos ne vont pas dans la pellicule
+C'est une **limitation Apple imposée** pour tous les navigateurs web. Quand on utilise `capture="environment"` dans un `<input type="file">`, iOS ouvre la caméra en mode "capture directe" → la photo va dans l'app mais PAS dans la pellicule. Ce n'est pas un bug tAIx.
+
+### Solution recommandée aux clients
+**Workflow optimal (pellicule + tAIx) :**
+1. Photographier tous les documents avec l'**app Appareil Photo Apple** → photos dans la pellicule
+2. Ouvrir tAIx → bouton **🖼 Galerie** → sélectionner toutes les photos d'un coup
+3. Appuyer sur **▶ Analyser**
+
+Avantages : photos conservées dans la pellicule, possibilité de relire avant envoi, sélection multiple en une fois.
+
+### Fix compression immédiate (1er mars 2026)
+**Problème** : compression uniquement avant OCR → 35 photos × 5MB = 175MB en mémoire → iOS plantait
+**Solution** : compression dès l'ajout (`addFiles` async avec `Promise.all`)
+- Chaque photo compressée en 0.2s après sélection (canvas 1800px / JPEG 82%)
+- 35 photos en mémoire = 35 × 300KB = **10MB** (au lieu de 175MB)
+- Aucune limite de nombre de photos
+- Toast `⏳ 35 photos en cours…` pendant compression, puis `📷 35 photos ajoutées`

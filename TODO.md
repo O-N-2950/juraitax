@@ -106,3 +106,11 @@ URL : https://juraitax-app-production-f257.up.railway.app
 | WinWin email | contact@winwin.swiss |
 | Build local | cd juraitax && npm run build |
 | Deploy | git push origin main (GitHub Actions automatique) |
+
+---
+
+## ✅ FAIT — compression immédiate + pellicule iOS (1er mars 2026)
+
+- [x] **Fix compression immédiate** : `addFiles` est maintenant async — chaque photo compressée (canvas 1800px/JPEG82%) dès la sélection via `Promise.all`. 35 photos = 10MB en mémoire au lieu de 175MB. Aucune limite de nombre de photos.
+- [x] **Pellicule iPhone** : limitation Apple — le bouton 📷 en web app ne sauvegarde pas dans la pellicule. Solution documentée : photographier avec l'app Appareil Photo native → puis bouton 🖼 Galerie dans tAIx pour importer tout d'un coup.
+- [x] **À communiquer aux clients** : "Prenez vos photos avec l'app Appareil Photo, puis importez via Galerie"
