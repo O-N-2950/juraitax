@@ -246,7 +246,8 @@ export function FadeIn({ children, delay = 0, style = {} }) {
 
 // ── 5. BADGE ÉCONOMIE FISCALE ─────────────────────────────────────────
 // Affiche l'économie réalisée vs fiduciaire, animée
-export function SavingsBadge({ lang = "fr" }) {
+export function SavingsBadge({ lang = "fr", isB2B = false }) {
+  if (isB2B) return null;  // Ne jamais afficher face à une fiduciaire
   const [show, setShow] = useState(false);
 
   const labels = {
