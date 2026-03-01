@@ -1,5 +1,5 @@
 # JurAI Tax — CONTEXT.md
-## Mémoire projet complète · Mars 2026 · v2.1
+## Mémoire projet complète · Mars 2026 · v3.0
 
 ---
 
@@ -61,7 +61,7 @@ L'argument "erreurs oubliées" cible UNIQUEMENT les particuliers qui remplissent
 
 ---
 
-## 🌍 STRATÉGIE MULTILINGUE — 6 LANGUES DÈS LE DÉPART
+## 🌍 STRATÉGIE MULTILINGUE — 7 LANGUES DÈS LE DÉPART
 
 | Langue | Code | Priorité | Population CH | Zone de concentration |
 |---|---|---|---|---|
@@ -71,11 +71,15 @@ L'argument "erreurs oubliées" cible UNIQUEMENT les particuliers qui remplissent
 | Portugais | pt | Tier 1 | ~270'000 | **Jura & NE: 1ère minorité** |
 | Espagnol | es | Tier 1 | ~105'000 | GE, VD, ZH |
 | Anglais | en | Tier 1 | ~45'000 UK + expats | GE, ZH, VD |
+| **Ukrainien** | **uk** | **Tier 1** | **~65'000** | **BE, ZH, VD, GE — réfugiés depuis 2022** |
 
 ### Tier 2 — post-expansion alémanique
 - **Albanais** (al) — 115'000 Kosovars, BE/ZH
 - **Serbe/Croate/Bosnien** (sr) — 150'000+, Jura/BE/ZH (une seule implémentation suffit)
 - **Turc** (tr) — 80'000, ZH/Biel
+
+### Argument Ukrainien — contexte unique
+Depuis l'invasion russe de février 2022, **~65'000 Ukrainiens** ont obtenu le statut S en Suisse (protection temporaire). Ces réfugiés, souvent qualifiés (ingénieurs, enseignants, médecins), intègrent progressivement le marché du travail suisse et doivent remplir une déclaration d'impôts. **Aucun logiciel fiscal suisse ne leur parle en ukrainien.** JurAI Tax est le premier.
 
 ### Règles de traduction
 - Interface dans la langue choisie (libellés, aide, explications)
@@ -84,16 +88,49 @@ L'argument "erreurs oubliées" cible UNIQUEMENT les particuliers qui remplissent
 - OCR indépendant de la langue d'interface (attestations fédérales = identiques)
 
 ### Argument WIN WIN v2
-**Première fois en Suisse** qu'un courtier FINMA conseille en PT/ES/AL/SR.
+**Première fois en Suisse** qu'un courtier FINMA conseille en PT/ES/AL/SR/UK.
 Un travailleur portugais au Jura depuis 15 ans n'a jamais eu de conseiller financier dans sa langue.
+Un réfugié ukrainien à Berne depuis 2022 non plus.
 JurAI Tax capte le lead multilingue → WIN WIN convertit dans sa langue → relation long terme.
 Le bouche-à-oreille dans les communautés immigrées = acquisition virale sans coût marketing.
 
-### Statistiques étrangers en Suisse (OFS 2025)
-- 28% de la population = nationalité étrangère (2,41M personnes)
-- 67% UE/AELE, 33% États tiers
-- Top communautés: IT 330k, DE 310k, PT 270k, FR 165k, XK 115k, ES 105k, RS 95k, TR 80k
-- Suisse romande = plus forte proportion d'étrangers (GE 42%, VD 37%, NE 29%, JU 26%)
+---
+
+## 📄 RAPPORT FISCAL PERSONNALISÉ — DIFFÉRENCIATEUR CLÉ
+
+### Concept
+Après chaque déclaration établie, JurAI Tax génère automatiquement un **Rapport fiscal personnalisé A4** (1 page) remis au client avec sa déclaration officielle.
+
+### Ce que le rapport contient (dynamique selon la situation)
+Ce rapport mentionne UNIQUEMENT les éléments qui ont réellement influencé CETTE déclaration:
+- Identification: nom, commune, année fiscale, canton
+- Base légale appliquée (ex: "LRIFD Canton du Jura, édition 2025")
+- Pour chaque décision fiscale significative:
+  - 🏠 Frais d'entretien d'immeuble: forfait vs réel — lequel a été retenu et pourquoi
+  - 💼 Rachat LPP: montant, déductibilité intégrale admise
+  - 🏦 Pilier 3a: montant versé, plafond appliqué, économie générée
+  - 👨‍👩‍👧 Enfants à charge: garde complète/partagée, déduction applicable
+  - 🏥 Frais médicaux: seuil cantonal franchi → déduction retenue
+  - 📊 Subsides LAMal: éligibilité détectée
+  - etc.
+- Récapitulatif: revenu imposable initial → après déductions → économie totale estimée
+- Signature: "Établi sur la base du règlement fiscal [Canton], [année]. JurAI Tax — PEP's Swiss SA"
+
+### Valeur pour le client
+- Comprend exactement ce qui a été fait et pourquoi — **en sa langue**
+- Peut comparer avec les années suivantes (évolution)
+- Preuve de sérieux et de transparence
+
+### Valeur pour PEP's Swiss SA / WIN WIN
+- **Décharge de responsabilité documentée**: chaque choix fiscal est justifié par écrit
+- **Preuve de valeur ajoutée**: le client voit concrètement l'économie réalisée
+- **Différenciateur unique**: aucun logiciel fiscal grand public ne produit ce document
+- **Fidélisation**: le client revient chaque année avec "son" rapport
+
+### Disponibilité
+- 7 langues dès le départ (FR/DE/IT/PT/ES/EN/UK)
+- Inclus dans le prix standard CHF 49
+- Inclus dans tous les packs B2B
 
 ---
 
@@ -101,7 +138,7 @@ Le bouche-à-oreille dans les communautés immigrées = acquisition virale sans 
 
 ### Stack implémentée
 - **Frontend:** React + Zustand + Vite
-- **i18n:** src/i18n.js — 200+ clés, 6 langues ✅ FAIT
+- **i18n:** src/i18n.js — 220+ clés, 7 langues ✅ FAIT (v3.0)
 - **Détection canton:** src/cantonDetector.js — par nom de domaine ✅ FAIT
 - **Sélecteur langue:** src/LangSelector.jsx — dropdown dans chaque écran ✅ FAIT
 - **State:** src/store.js — avec lang + canton + cantonConfig + audit trail ✅ FAIT
@@ -116,6 +153,7 @@ Le bouche-à-oreille dans les communautés immigrées = acquisition virale sans 
 - **OCR/IA:** Claude API Anthropic (Sonnet)
 - **Paiements:** Stripe (CHF natif + Twint)
 - **Emails:** Resend
+- **Rapport fiscal:** Génération PDF dynamique (reportlab/puppeteer) — À IMPLÉMENTER
 
 ### Détection domaine → canton automatique
 ```
@@ -126,10 +164,6 @@ vstaix.ch      → VS + lang FR
 zuritaix.ch    → ZH + lang DE
 fritaix.ch     → FR + lang FR
 ```
-
-### Accent couleur par canton
-Chaque domaine = couleur accent distincte injectée dans CSS au démarrage.
-JU=#C9A84C (gold), TI=#1565C0 (bleu), GE=#B71C1C (rouge), ZH=#1565C0, etc.
 
 ---
 
@@ -159,7 +193,7 @@ JU=#C9A84C (gold), TI=#1565C0 (bleu), GE=#B71C1C (rouge), ZH=#1565C0, etc.
 - **Railway (dev):** https://juraitax-app-production-f257.up.railway.app
 - **Railway Project ID:** 77f3852f-a31f-45e6-b983-6dc243dc4f1d
 - **Railway Service ID:** 03505601-aa45-41ec-aa76-606fa6c0d2ee
-- **Dernier commit:** feat i18n 6 langues + détection canton par domaine
+- **Dernier commit:** feat ukrainien (7ème langue) + clés rapport fiscal i18n
 
 ---
 
@@ -167,9 +201,9 @@ JU=#C9A84C (gold), TI=#1565C0 (bleu), GE=#B71C1C (rouge), ZH=#1565C0, etc.
 
 | Document | Localisation | Version | Date |
 |---|---|---|---|
-| Business Plan PDF | /mnt/user-data/outputs/JurAI_Tax_Business_Plan.pdf | v2.1 | Mars 2026 |
-| Script BP | /home/claude/juraitax_bp_v2.py | v2.1 | Mars 2026 |
-| CONTEXT.md (ce fichier) | /home/claude/juraitax/CONTEXT.md | v2.1 | Mars 2026 |
+| Business Plan PDF | /mnt/user-data/outputs/ | v3.0 | Mars 2026 |
+| i18n.js (7 langues) | GitHub src/i18n.js | v3.0 | Mars 2026 |
+| CONTEXT.md (ce fichier) | GitHub CONTEXT.md | v3.0 | Mars 2026 |
 
 ---
 
@@ -187,22 +221,25 @@ JU=#C9A84C (gold), TI=#1565C0 (bleu), GE=#B71C1C (rouge), ZH=#1565C0, etc.
 - [ ] Connexion Claude API (OCR documents réels)
 - [ ] Paiement Stripe réel avec paywall actif
 - [ ] Emails confirmation + PDF via Resend
+- [ ] **Générateur Rapport fiscal A4** (PDF dynamique par client)
 - [ ] 5-10 premiers clients réels (réseau WIN WIN)
 - [ ] Campagne "100 premiers à CHF 29" sur réseaux locaux
 
 ### 🟠 MOYEN TERME (Q2-Q3 2026)
 - [ ] Module NE — Neuchâtel (neuchtaix.ch)
-- [ ] Module TI — Tessin (ticinaitax.ch) — interface IT déjà prête!
+- [ ] Module TI — Tessin (ticinaitax.ch) — interface IT + **communauté ukrainienne TI** déjà prête!
 - [ ] Interface B2B multi-dossiers tableau de bord fiduciaires
 - [ ] Comparaison avis de taxation vs déclaration
 - [ ] Langues Tier 2: Albanais + Serbe/Croate/Bosnien
 - [ ] Premier partenariat fiduciaire payant Canton du Jura
+- [ ] Partenariat associations ukrainiennes en Suisse (bouche à oreille)
 
 ### 🔵 LONG TERME (2027+)
 - [ ] VS + FR bilingues (fr/de)
 - [ ] VD + GE grands marchés
-- [ ] ZH + Suisse alémanique (zuritaix.ch)
+- [ ] **ZH — Zurich 500'000 DI/an** (zuritaix.ch) — plus grand marché Suisse
 - [ ] Turc — communauté ZH/Biel
+- [ ] Albanais — communauté BE/ZH
 - [ ] API banques cantonales / caisses de pension (distribution B2B2C)
 - [ ] Module analyse rétrospective 3 ans (réclamations impôts particuliers)
 - [ ] Application mobile native iOS + Android
@@ -211,7 +248,7 @@ JU=#C9A84C (gold), TI=#1565C0 (bleu), GE=#B71C1C (rouge), ZH=#1565C0, etc.
 ### ✅ DÉJÀ FAIT
 - [x] App React complète déployée sur Railway
 - [x] Moteur fiscal Jura 2025 (ICC + IFD + fortune)
-- [x] Système i18n 6 langues (FR/DE/IT/PT/ES/EN) — 200+ clés
+- [x] Système i18n **7 langues** (FR/DE/IT/PT/ES/EN/**UK**) — 220+ clés
 - [x] Détection automatique canton par domaine
 - [x] Sélecteur de langue dropdown (LangSelector.jsx)
 - [x] Store Zustand avec lang + canton + audit trail
@@ -221,8 +258,8 @@ JU=#C9A84C (gold), TI=#1565C0 (bleu), GE=#B71C1C (rouge), ZH=#1565C0, etc.
 - [x] Paywall post-calcul avec optimisations floutées
 - [x] CTA WIN WIN en fin de parcours — multilingue
 - [x] Portfolio 11 domaines achetés sur Infomaniak
-- [x] Business Plan PDF v2.1 (sans critique des fiduciaires)
-- [x] CONTEXT.md complet
+- [x] Business Plan PDF v3.0 (sans critique des fiduciaires, avec Tessin + Zurich + ukrainien + rapport fiscal)
+- [x] CONTEXT.md v3.0 complet
 
 ---
 
@@ -234,8 +271,9 @@ WIN WIN v2 = application de courtage IA multilingue (même architecture, même s
 Les deux apps partagent: base clients, système multilingue, infrastructure Infomaniak.
 
 **Pont multilingue = avantage concurrentiel unique:**
-JurAI Tax en portugais → WIN WIN conseille en portugais → fidélisation communauté portugaise
-JurAI Tax en albanais → WIN WIN conseille en albanais → fidélisation communauté kosovare
+- JurAI Tax en portugais → WIN WIN conseille en portugais → fidélisation communauté portugaise
+- JurAI Tax en ukrainien → WIN WIN conseille en ukrainien → fidélisation réfugiés ukrainiens
+- JurAI Tax en albanais → WIN WIN conseille en albanais → fidélisation communauté kosovare
 
 ---
-*Dernière mise à jour: Mars 2026 v2.1 | PEP's Swiss SA + Claude (Anthropic)*
+*Dernière mise à jour: Mars 2026 v3.0 | PEP's Swiss SA + Claude (Anthropic)*
