@@ -1,5 +1,5 @@
 import { useStore } from "./store";
-import { Welcome, CourrierScreen, B2BLogin, Loading, Paywall, Result } from "./screens";
+import { Welcome, CourrierScreen, B2BLogin, Loading, Paywall, Result, SubscriptionOffer } from "./screens";
 import { ChecklistScreen } from "./ChecklistDocs";
 import Form from "./Form";
 import { useEffect } from "react";
@@ -29,6 +29,7 @@ export default function App() {
     case "loading":  return <Loading />;
     case "paywall":  return <Paywall />;
     case "result":   return <Result />;
+    case "subscription": return <SubscriptionOffer />;
     default:         return <Welcome />;
   }
 }
