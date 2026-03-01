@@ -6,6 +6,8 @@
 import { useState, useRef } from "react";
 import { useStore, SOURCE } from "./store";
 import { ocrDocument, applyOCRToStore } from "./ocr";
+import { genererQuestionsIA } from "./FiscalAdvisor";
+import { AdvisorScreen } from "./AdvisorScreen";
 import { GlobalStyles, T as S } from "./ui";
 import { LangSelector } from "./LangSelector";
 import { useT } from "./i18n";
@@ -71,6 +73,10 @@ export function ChecklistScreen() {
   const [uploads, setUploads] = useState({});
   const [expanded, setExpanded] = useState({ identity: true, revenus: true, deductions: false, fortune: false });
   const [ocrStatus, setOcrStatus] = useState({}); // { docId: 'loading'|'done'|'error' }
+  const [advisorData, setAdvisorData] = useState(null);
+  const [showAdvisor, setShowAdvisor] = useState(false);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [allOcrResults, setAllOcrResults] = useState({});
   const fileRefs = useRef({});
 
   const docs = DOCS(t);
@@ -98,6 +104,7 @@ export function ChecklistScreen() {
       if (!result._error) {
         applyOCRToStore(result, importFromDoc, null, SOURCE);
         setOcrStatus(s => ({ ...s, [docId]: "done" }));
+        setAllOcrResults(r => ({ ...r, [docId]: result }));
       } else {
         setOcrStatus(s => ({ ...s, [docId]: "error" }));
       }
@@ -341,7 +348,18 @@ export function ChecklistScreen() {
       }}>
         <div style={{ maxWidth: 640, margin:"0 auto" }}>
           <button
-            onClick={() => setScreen("form")}
+            onClick={async () => {
+              if (Object.keys(allOcrResults).length > 0 && !advisorData) {
+                setAdvisorLoading(true);
+                try {
+                  const advice = await genererQuestionsIA(allOcrResults, useStore.getState().getAll(), lang);
+                  setAdvisorData(advice);
+                  if (advice?.questions?.length > 0) { setAdvisorLoading(false); setShowAdvisor(true); return; }
+                } catch(e) { console.warn("Advisor error:", e); }
+                setAdvisorLoading(false);
+              }
+              setScreen("form");
+            }}
             style={{
               width:"100%", padding:"18px 24px",
               background: canProceed
