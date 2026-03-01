@@ -184,7 +184,9 @@ export function fusionnerOCR(resultats) {
 }
 
 // ── Applique les données OCR au store ───────────────────────────────
+// CRITIQUE : les clés doivent correspondre EXACTEMENT aux fieldKey du Form.jsx
 const FIELD_MAP = {
+  // Identité — clés identiques entre OCR et form
   prenom:               "prenom",
   nom:                  "nom",
   naissance:            "naissance",
@@ -196,39 +198,43 @@ const FIELD_MAP = {
   nb_enfants:           "nb_enfants",
   taux_activite:        "taux_activite",
   employeur:            "employeur",
-  rev_salaire_net:      "rev_salaire",
-  rev_salaire_brut:     "rev_salaire_brut",
-  rev_avs:              "rev_avs",
-  rev_ai:               "rev_ai",
-  rev_lpp_rente:        "rev_lpp_rente",
-  rev_chomage:          "rev_chomage",
-  rev_independant:      "rev_independant",
+
+  // Revenus → fieldKeys Form.jsx
+  rev_salaire_net:      "revenus_salaire",
+  rev_salaire_brut:     "revenus_salaire",   // fallback si net absent
+  rev_avs:              "revenus_avs",
+  rev_ai:               "revenus_avs",        // AI = même champ que AVS
+  rev_lpp_rente:        "revenus_lpp",
+  rev_chomage:          "revenus_chomage",
+  rev_independant:      "revenus_independant",
+  rev_titres_dividendes:"revenus_titres",
   valeur_locative:      "valeur_locative",
-  rev_titres_dividendes:"rev_titres",
-  cotisations_avs:      "cotisations_avs",
+
+  // Cotisations / primes
   cotisations_lpp:      "cotisations_lpp",
-  cotisations_ac:       "cotisations_ac",
   primes_assurance_maladie: "primes_maladie",
-  primes_assurance_vie: "primes_vie",
-  montant_3a:           "pilier_3a",
-  institution_3a:       "institution_3a",
+
+  // Épargne / déductions
+  montant_3a:           "pilier3a",
   montant_rachat_lpp:   "rachat_lpp",
-  caisse_pension:       "caisse_pension",
-  solde_31dec:          "solde_bancaire",
-  banque:               "banque",
-  valeur_titres:        "valeur_titres",
+
+  // Fortune / comptes
+  solde_31dec:          "comptes_bancaires",
+  valeur_titres:        "titres",
+  assurance_vie_valeur: "assurance_vie",
+
+  // Immobilier
   interets_hypothecaires: "interets_hypothecaires",
-  solde_hypotheque:     "for_hypotheque",
-  valeur_fiscale:       "for_immobilier",
-  adresse_bien:         "adresse_bien",
-  frais_medicaux_net:   "frais_medicaux",
+  solde_hypotheque:     "dette_hypotheque",
+  valeur_fiscale:       "fortune_immobilier",
+
+  // Frais / dons / dettes
+  frais_medicaux_net:   "frais_maladie",
   montant_don:          "dons",
   frais_garde:          "frais_garde",
-  frais_prof_effectifs: "frais_prof",
-  km_trajet:            "km_trajet",
-  dettes:               "dettes",
-  leasing_solde:        "dettes_leasing",
-  montant_ttc:          "frais_entretien",
+  frais_entretien:      "frais_entretien",
+  dettes:               "autres_dettes",
+  leasing_solde:        "dette_leasing",
 };
 
 export function applyOCRToStore(ocrResult, importFromDoc) {

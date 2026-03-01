@@ -119,8 +119,8 @@ function getQuestionsSecours(data, lang) {
     ? new Date().getFullYear() - parseInt((data.naissance || "").split(/[-/]/)[0])
     : null;
   const estRetraite = age >= 64
-    || (data.rev_avs || 0) > 0
-    || (data.rev_lpp_rente || 0) > 0 && !(data.rev_salaire || 0);
+    || (data.revenus_avs || data.rev_avs || 0) > 0
+    || ((data.revenus_lpp || data.rev_lpp_rente || 0) > 0 && !(data.revenus_salaire || data.rev_salaire || 0));
 
   const fr = {
     subside: "Bénéficiez-vous de subsides pour votre caisse maladie (LAMal) ?",
