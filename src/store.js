@@ -98,6 +98,36 @@ export const useStore = create((set, get) => ({
 
   setCalcResult: (result) => set({ calcResult: result }),
 
+  // ── Abonnement CHF 49/an ─────────────────────────────────
+  subscriber: null,  // { email, nom, lang, canton, identite, subscribedAt }
+
+  setSubscriber: (sub) => set({ subscriber: sub }),
+  
+  saveSubscriberProfile: () => {
+    const { fields, lang, cantonConfig } = get();
+    const identiteKeys = ["prenom","nom","naissance","commune","adresse",
+      "no_contribuable","etat_civil","confession","enfants","nb_enfants"];
+    const identite = {};
+    for (const k of identiteKeys) {
+      if (fields[k]?.value) identite[k] = fields[k].value;
+    }
+    const sub = {
+      email: null, // set at subscription time
+      nom: (fields.prenom?.value || "") + " " + (fields.nom?.value || ""),
+      lang,
+      canton: cantonConfig?.canton || "JU",
+      identite,
+      subscribedAt: new Date().toISOString(),
+      nextReminderDates: [
+        new Date(new Date().getFullYear() + 1, 2, 1).toISOString(),  // 1 mars
+        new Date(new Date().getFullYear() + 1, 2, 20).toISOString(), // 20 mars
+        new Date(new Date().getFullYear() + 1, 3, 5).toISOString(),  // 5 avril
+      ]
+    };
+    set({ subscriber: sub });
+    return sub;
+  },
+
   reset: () => set({
     screen: "welcome", section: 0, fields: {}, calcResult: null,
   }),
