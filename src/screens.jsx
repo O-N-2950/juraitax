@@ -17,7 +17,7 @@ import { SubsidyWinWinBlock } from "./SubsidyWinWin";
 //  ÉCRAN WELCOME
 // ═══════════════════════════════════════════════
 export function Welcome() {
-  const { setScreen, clientCount, setMode, lang, cantonConfig } = useStore();
+  const { setScreen, clientCount, setMode, lang, cantonConfig, hasSavedDossier, savedAt, resetDossier } = useStore();
   const t = useT(lang);
   const isLaunch = clientCount < PRICING.launchLimit;
   const prix = isLaunch ? PRICING.particulierLaunch : PRICING.particulier;
@@ -31,6 +31,11 @@ export function Welcome() {
     JU:"Canton du Jura", NE:"Neuchâtel", FR:"Fribourg",
     VD:"Vaud", VS:"Valais", GE:"Genève", TI:"Ticino", ZH:"Zürich",
   }[canton] || "Canton du Jura";
+
+  // Dossier en cours ?
+  const hasDossier = hasSavedDossier?.() || false;
+  const dossierId  = savedAt?.();
+  const dossierdDate = dossierId ? new Date(dossierId).toLocaleDateString("fr-CH", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" }) : null;
 
   return (
     <div style={{ minHeight:"100vh", background:S.bg, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 20px", position:"relative", overflow:"hidden" }}>
@@ -60,6 +65,37 @@ export function Welcome() {
               <span style={{width:5,height:5,borderRadius:"50%",background:S.gold,animation:"pulse 1.5s infinite",display:"inline-block"}} />
               {restant} places — CHF {prix}
             </span>
+          </div>
+        )}
+
+        {/* ── BANNIÈRE REPRISE DOSSIER ─────────────────────────── */}
+        {hasDossier && (
+          <div className="fu" style={{ marginBottom:20, padding:"14px 16px", borderRadius:12,
+            background:`rgba(52,211,153,0.06)`, border:`1px solid rgba(52,211,153,0.25)`,
+            display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+            <span style={{ fontSize:20 }}>📂</span>
+            <div style={{ flex:1, minWidth:120 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:S.green, fontFamily:"'Outfit',sans-serif" }}>
+                {lang==="de" ? "Gespeichertes Dossier" : lang==="en" ? "Saved dossier" : "Dossier en cours"}
+              </div>
+              {dossierdDate && (
+                <div style={{ fontSize:11, color:S.textDim, fontFamily:"'Outfit',sans-serif" }}>
+                  {lang==="de" ? "Gespeichert" : lang==="en" ? "Saved" : "Sauvegardé"} {dossierdDate}
+                </div>
+              )}
+            </div>
+            <button onClick={() => setScreen("checklist")}
+              style={{ padding:"10px 18px", borderRadius:9, minHeight:44,
+                background:`linear-gradient(135deg,${S.green},#2DBD87)`,
+                color:"#080C14", border:"none", fontFamily:"'Outfit',sans-serif",
+                fontSize:13, fontWeight:700, cursor:"pointer", touchAction:"manipulation" }}>
+              {lang==="de" ? "Weiter →" : lang==="en" ? "Resume →" : "Reprendre →"}
+            </button>
+            <button onClick={() => { useStore.getState().reset(); }}
+              style={{ fontSize:11, color:S.muted, background:"none", border:"none",
+                cursor:"pointer", fontFamily:"'Outfit',sans-serif", padding:"4px", minHeight:44 }}>
+              {lang==="de" ? "Neu" : lang==="en" ? "New" : "Nouveau"}
+            </button>
           </div>
         )}
 
