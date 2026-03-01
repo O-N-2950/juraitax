@@ -1,19 +1,18 @@
 # TODO.md — tAIx
 > PEP's Swiss SA · Bellevue 7 · 2950 Courgenay
-> Mis à jour : 1er mars 2026 — fin de session
+> Mis à jour : 1er mars 2026 — session UX B2B fix
 
 ---
 
-## 🔴 ACTION IMMÉDIATE — Railway (10 min)
+## 🔴 ACTION IMMÉDIATE — Railway Redeploy (5 min)
 
-**Le dist/ est dans le repo GitHub mais Railway sert l'ancien build.**
+**Le dist/ vient d'être mis à jour sur GitHub avec le fix UX B2B.**
 → Ouvrir **railway.app** → projet juraitax → bouton **"Redeploy"**
-→ Attendre 2-3 min → tester sur iPhone
+→ Tester le flux : B2B → login → checklist directe (plus de saisie client)
 
 **Pour automatiser les futurs déploiements :**
 → railway.app → Settings → Tokens → générer un token
 → GitHub → juraitax → Settings → Secrets → Actions → RAILWAY_TOKEN = coller token
-→ Après ça, chaque commit déclenche un déploiement automatique
 
 ---
 
@@ -33,20 +32,14 @@
 
 ## 🔴 SOLURIS — INTÉGRATION FISCALE (1 session)
 
-Soluris est en train d'ingérer les lois fiscales (prompt envoyé).
-Une fois Soluris mis à jour :
-
 - [ ] Vérifier que LIFD (642.11), LHID (642.14), LPP (831.40), OPP3 sont dans la DB
 - [ ] Vérifier que les 26 lois cantonales fiscales sont scrapées
 - [ ] Créer dans Soluris : **POST /api/fiscal-query** (sans auth, clé TAIX_INTERNAL_KEY)
 - [ ] Intégrer dans tAIx FiscalAdvisor.js : appel Soluris pour citer les sources de loi
-- [ ] Afficher sous chaque déduction : "Art. 82 LPP · ATF 148 II 121 · Circ. AFC n°18"
 
 ---
 
 ## 🟠 MIGRATION INFOMANIAK (destination finale)
-
-Railway = test temporaire. Infomaniak = cible définitive.
 
 - [ ] **Étape 1** : Compte Infomaniak + VPS-1 (~CHF 9/mois)
 - [ ] **Étape 2** : Transférer domaines taix.ch + juraitax.ch (code EPP, 24-48h)
@@ -64,62 +57,38 @@ Railway = test temporaire. Infomaniak = cible définitive.
 
 URL : https://juraitax-app-production-f257.up.railway.app
 
-Flux à tester :
-1. Welcome → sélectionner langue fr
-2. Checklist → photographier DI 2024 **en plusieurs pages** (15 photos)
+Flux à tester (nouveau flux B2B) :
+1. Welcome → bouton "Espace fiduciaire"
+2. B2B Login → email contact@winwin.swiss → "Ouvrir un nouveau dossier →"
+   → **directement sur la checklist** (plus de saisie nom/prénom)
+3. Checklist → uploader DI 2024 en plusieurs pages
    → vérifier compteur "✅ 15 pages chargées"
-   → vérifier "Analyse en cours… (3/15)"
-3. Photographier certificat de salaire
-4. Photographier extrait compte bancaire
-5. → Conseiller IA pose questions (FiscalAdvisor)
-   → Question subsides : "Bénéficiez-vous déjà de subsides LAMal ?"
-6. → Formulaire pré-rempli avec données OCR
-7. → Résultat avec montant impôt
-   → Vérifier bloc SubsidyWinWin (si papa éligible)
-   → Vérifier badge 3a si pas maximisé
-8. → Copie contribuable (imprimer)
+   → vérifier badge "✨ Données extraites" (OCR identifie le client)
+4. → Conseiller IA → Formulaire → Résultat
+5. Vérifier bandeau vert : "💼 WIN WIN Finance Group — [Nom OCR]"
+   → Vérifier N° contribuable affiché si extrait
 
 ---
 
 ## 🟢 FONCTIONNALITÉS FUTURES
 
 ### Cantons supplémentaires (après validation JU)
-- [ ] Neuchâtel (NE) — barèmes + communes
-- [ ] Tessin (TI) — barèmes + communes (italiano)
-- [ ] Berne (BE) — barèmes + communes (fr + de)
-- [ ] Genève (GE) — barèmes + communes
-- [ ] Vaud (VD) — barèmes + communes
+- [ ] Neuchâtel (NE), Berne (BE), Genève (GE), Vaud (VD), Tessin (TI)
 
 ### Moutier 2027 (ne rien faire avant jan 2027)
-- [ ] Créer landing taix.ch/moutier
-- [ ] Module Migration Berne → Jura (OCR ancienne DI bernoise → pré-remplissage JU)
-- [ ] Code promo MOUTIER2027 = CHF 39 sur Stripe
-- [ ] Contact : administration@moutier.ch
-- [ ] Flyers imprimables guichet communal
-
-### Scalabilité 1M requêtes (objectif long terme)
-- Architecture actuelle : ~200 utilisateurs simultanés (suffisant lancement)
-- Évolution : CDN Cloudflare + Redis cache + Anthropic Enterprise key
-- À discuter avec Anthropic quand > 1000 clients actifs
-
-### Application mobile native
-- React Native (iOS + Android)
-- Après validation web + 100 clients payants
+- [ ] Landing taix.ch/moutier, code MOUTIER2027 = CHF 39
 
 ---
 
-## ✅ FAIT CETTE SESSION (1er mars 2026)
+## ✅ FAIT CETTE SESSION (1er mars 2026 — UX B2B fix)
 
-- [x] SubsidyWinWin.jsx — détection subsides LAMal + 3a + redirection WinWin FINMA
-- [x] FiscalAdvisor.js v2 — question subsides LAMal ajoutée au questionnaire
-- [x] screens.jsx v9 — SubsidyWinWin intégré dans Result screen
-- [x] i18n.js — arguments marketing "20min vs 3h" + "erreur humaine" (7 langues)
-- [x] ChecklistDocs.jsx v3 — **upload multi-pages** (plusieurs photos/fichiers par doc, OCR fusionné)
-- [x] JustificatifsPDF.js — bug spread operator fixé (build était cassé)
-- [x] GitHub Actions deploy.yml — workflow build auto
-- [x] CONTEXT.md v6.0 + TODO.md mis à jour
-- [x] Prompt Soluris rédigé — lois fiscales 26 cantons + LIFD + endpoints
-- [x] Diagnostiqué : Railway ne redéploie pas auto → besoin RAILWAY_TOKEN secret GitHub
+- [x] **screens.jsx v10** — Suppression saisie manuelle client (nom/prénom/N° contribuable) en mode B2B fiduciaire
+- [x] **Flux B2B simplifié** : login → checklist directe (1 étape au lieu de 2)
+- [x] **Info-box OCR** sur page B2B : explication identification automatique
+- [x] **Bandeau résultat enrichi** : nom OCR + N° contribuable si extrait
+- [x] **Reset dossier** : fields:{} réinitialisé à chaque nouveau client
+- [x] **Build + dist/ committé** sur GitHub (prêt pour Railway Redeploy)
+- [x] CONTEXT.md v6.1 + TODO.md mis à jour
 
 ---
 
@@ -132,5 +101,4 @@ Flux à tester :
 | Repo Soluris | https://github.com/O-N-2950/soluris |
 | WinWin tel | 032 466 11 00 |
 | WinWin email | contact@winwin.swiss |
-| Stripe secret | sk_live_51R6rR9... (NE PAS exposer) |
 | Build local | cd juraitax && npm run build |
