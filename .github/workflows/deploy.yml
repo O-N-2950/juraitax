@@ -1,4 +1,4 @@
-name: Build and Deploy to Railway
+name: Build and Commit dist/
 
 on:
   push:
@@ -9,35 +9,33 @@ on:
       - 'TODO.md'
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm install
-      
+
       - name: Build
         env:
           VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-          VITE_BUILD_DATE: "2026-03-01-v3"
+          VITE_BUILD_DATE: "2026-03-01-v4"
         run: npm run build
-      
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
 
-      - name: List Railway services
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway service || true
+      - name: Commit and push dist/
+        run: |
+          git config user.name "tAIx Build Bot"
+          git config user.email "bot@taix.ch"
+          git add dist/ -f
+          git diff --staged --quiet || git commit -m "build: auto dist/ [skip ci]"
+          git push
 
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --detach --service juraitax-app
