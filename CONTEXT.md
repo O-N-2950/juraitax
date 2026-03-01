@@ -1,279 +1,274 @@
-# JurAI Tax — CONTEXT.md
-## Mémoire projet complète · Mars 2026 · v3.0
+# CONTEXT.md — JurAI Tax / tAIx v4.0
+**Dernière mise à jour : Mars 2026**
 
 ---
 
-## 🏢 ENTITÉS JURIDIQUES
+## 🏢 ENTITÉS & CONTACTS
 
-| Entité | Rôle | Adresse |
-|---|---|---|
-| **PEP's Swiss SA** | Éditeur logiciel JurAI Tax | Bellevue 7, 2950 Courgenay |
-| **WIN WIN Finance Group SARL** | Mandataire fiscal & courtier assurance agréé | FINMA F01042365 |
-
-**Email principal B2B:** contact@winwin.swiss (accès illimité gratuit)
-**Email admin:** admin@juraitax.ch
+| Entité | Rôle | Contact |
+|--------|------|---------|
+| **PEP's Swiss SA** | Éditeur JurAI Tax / tAIx | Bellevue 7, 2950 Courgenay · admin@juraitax.ch |
+| **WIN WIN Finance Group SARL** | Partenaire courtage FINMA | FINMA F01042365 · contact@winwin.swiss |
 
 ---
 
-## 🌐 PORTFOLIO DOMAINES (tous sur Infomaniak)
+## 🌐 DOMAINES & MARQUE
 
-| Domaine | Canton | App | Marché DI/an | Statut |
-|---|---|---|---|---|
-| juraitax.ch | Jura (JU) | JurAI Tax | 42'000 | ✅ EN PROD |
-| neuchtaix.ch | Neuchâtel (NE) | NeuChTAIX | 85'000 | Phase 2 Q3 2026 |
-| ticinaitax.ch | Tessin (TI) | TicinaITax | 175'000 | Phase 2 Q4 2026 |
-| ticinaitax.online | Tessin (TI) backup | TicinaITax | — | Réserve |
-| fritaix.ch | Fribourg (FR) | FriTAIX | 130'000 | Phase 3 Q1 2027 |
-| vstaix.ch | Valais (VS) | VSTAIX | 165'000 | Phase 3 Q1 2027 |
-| vaudtaix.ch | Vaud (VD) | VaudTAIX | 360'000 | Phase 4 Q3 2027 |
-| getaix.ch | Genève (GE) | GeTAIX | 240'000 | Phase 4 Q3 2027 |
-| zuritaix.ch | Zurich (ZH) | ZuriTAIX | 500'000 | Phase 5 2028 |
-| pepsstart.ch | PEP's Swiss SA | Corporate | — | Institutionnel |
-| pepsstart.com | PEP's Swiss SA | Corporate INT | — | Institutionnel |
+### Domaine principal
+**www.tAIx.ch** — domaine principal acquis Mars 2026
+- Logo officiel : tAIx (t minuscule, AI en bleu, x réseau de nœuds) + drapeau suisse
+- Tagline : "Déclarations Fiscales Suisses Intelligentes"
+- Couleurs : Navy/dark + bleu électrique IA + rouge suisse
 
-**Total marché accessible:** 1'700'000+ DI/an (tous cantons)
-**Hébergement:** Infomaniak CH (20 sites inclus) — chaque domaine = virtual host → même app Node.js
+### Architecture domaines (tous acquis sur Infomaniak)
+| Domaine | Canton | Usage |
+|---------|--------|-------|
+| taix.ch | HUB | Portail principal → redirection cantonale |
+| taix.app | HUB | Mobile / PWA |
+| juraitax.ch | JU | Canton du Jura (Phase 1 — EN PRODUCTION) |
+| juraitax.online | JU | Backup JU |
+| neuchtaix.ch | NE | Neuchâtel (Phase 2 — Q3 2026) |
+| ticinaitax.ch | TI | Tessin (Phase 2 — Q4 2026) |
+| ticinaitax.online | TI | Backup TI |
+| fritaix.ch | FR | Fribourg (Phase 3) |
+| vstaix.ch | VS | Valais (Phase 3) |
+| vaudtaix.ch | VD | Vaud (Phase 4) |
+| getaix.ch | GE | Genève (Phase 4) |
+| zuritaix.ch | ZH | Zurich (Phase 5 — 2028) |
 
 ---
 
-## 💰 TARIFICATION
+## 💰 MODÈLE TARIFAIRE — IMMUABLE
+
+### Règle fondamentale
+> **CHF 49 minimum, toujours. Les fiduciaires facturent CHF 200–300 pour le même travail. tAIx est meilleur.**
 
 ### B2C Particuliers
-- CHF 29 — 100 premiers clients (lancement)
-- CHF 49 — prix standard
-- CHF 9 — add-on prolongation délai
-- CHF 49 — option courrier senior (adresse: Bellevue 7, 2950 Courgenay)
+| Offre | Prix | Notes |
+|-------|------|-------|
+| 100 premiers clients | CHF 29 | Lancement uniquement |
+| Standard | **CHF 49** | Prix définitif |
+| **Abonnement annuel** | **CHF 49/an** | Fidélisation — même prix, expérience supérieure |
+| Prolongation délai | CHF 9 (inclus abonné) | Add-on |
+| Courrier postal séniors | CHF 49 + frais envoi | |
 
-### B2B Fiduciaires
-| Plan | Prix/an | Quota | Extra/DI |
-|---|---|---|---|
-| Solo | CHF 490 | 20 DI | CHF 29 |
-| Cabinet | CHF 990 | 60 DI | CHF 29 |
-| Unlimited | CHF 1'990 | Illimité | — |
-| WIN WIN Finance Group | CHF 0 | Illimité | — |
-
-**WIN WIN facture CHF 49 à ses propres clients** (FINMA F01042365 couvre conseil proactif: pilier 3a, subsides LAMal, recommandations assurance)
-
-### Positionnement vis-à-vis des fiduciaires
-⚠️ **RÈGLE ABSOLUE:** Ne jamais critiquer les fiduciaires dans aucune communication.
-Les fiduciaires sont des **partenaires B2B cibles** (packs Solo/Cabinet/Unlimited).
-L'argument "erreurs oubliées" cible UNIQUEMENT les particuliers qui remplissent eux-mêmes leur déclaration — jamais les fiduciaires.
+### B2B Fiduciaires / Conseillers
+| Plan | Prix | Dossiers |
+|------|------|----------|
+| Solo | CHF 490/an | Illimité |
+| Cabinet | CHF 990/an | Illimité |
+| Unlimited | CHF 1'990/an | Multi-users |
+| **WIN WIN Finance Group** | **GRATUIT** | Accès illimité partenaire |
 
 ---
 
-## 🌍 STRATÉGIE MULTILINGUE — 7 LANGUES DÈS LE DÉPART
-
-| Langue | Code | Priorité | Population CH | Zone de concentration |
-|---|---|---|---|---|
-| Français | fr | Tier 1 | ~2M | Suisse romande — langue officielle |
-| Allemand | de | Tier 1 | ~5M | Suisse alémanique — cantons bilingues VS/FR |
-| Italien | it | Tier 1 | ~330'000 étrangers IT + Tessin | TI, ZH, GE |
-| Portugais | pt | Tier 1 | ~270'000 | **Jura & NE: 1ère minorité** |
-| Espagnol | es | Tier 1 | ~105'000 | GE, VD, ZH |
-| Anglais | en | Tier 1 | ~45'000 UK + expats | GE, ZH, VD |
-| **Ukrainien** | **uk** | **Tier 1** | **~65'000** | **BE, ZH, VD, GE — réfugiés depuis 2022** |
-
-### Tier 2 — post-expansion alémanique
-- **Albanais** (al) — 115'000 Kosovars, BE/ZH
-- **Serbe/Croate/Bosnien** (sr) — 150'000+, Jura/BE/ZH (une seule implémentation suffit)
-- **Turc** (tr) — 80'000, ZH/Biel
-
-### Argument Ukrainien — contexte unique
-Depuis l'invasion russe de février 2022, **~65'000 Ukrainiens** ont obtenu le statut S en Suisse (protection temporaire). Ces réfugiés, souvent qualifiés (ingénieurs, enseignants, médecins), intègrent progressivement le marché du travail suisse et doivent remplir une déclaration d'impôts. **Aucun logiciel fiscal suisse ne leur parle en ukrainien.** JurAI Tax est le premier.
-
-### Règles de traduction
-- Interface dans la langue choisie (libellés, aide, explications)
-- Chiffres/calculs identiques dans toutes les langues
-- La pression fiscale reste dans la langue officielle du canton
-- OCR indépendant de la langue d'interface (attestations fédérales = identiques)
-
-### Argument WIN WIN v2
-**Première fois en Suisse** qu'un courtier FINMA conseille en PT/ES/AL/SR/UK.
-Un travailleur portugais au Jura depuis 15 ans n'a jamais eu de conseiller financier dans sa langue.
-Un réfugié ukrainien à Berne depuis 2022 non plus.
-JurAI Tax capte le lead multilingue → WIN WIN convertit dans sa langue → relation long terme.
-Le bouche-à-oreille dans les communautés immigrées = acquisition virale sans coût marketing.
-
----
-
-## 📄 RAPPORT FISCAL PERSONNALISÉ — DIFFÉRENCIATEUR CLÉ
+## 🔄 ABONNEMENT CHF 49/AN — Fidélisation
 
 ### Concept
-Après chaque déclaration établie, JurAI Tax génère automatiquement un **Rapport fiscal personnalisé A4** (1 page) remis au client avec sa déclaration officielle.
+Après chaque déclaration payée (CHF 49), proposer l'abonnement annuel au **même prix CHF 49** — jamais moins.
 
-### Ce que le rapport contient (dynamique selon la situation)
-Ce rapport mentionne UNIQUEMENT les éléments qui ont réellement influencé CETTE déclaration:
-- Identification: nom, commune, année fiscale, canton
-- Base légale appliquée (ex: "LRIFD Canton du Jura, édition 2025")
-- Pour chaque décision fiscale significative:
-  - 🏠 Frais d'entretien d'immeuble: forfait vs réel — lequel a été retenu et pourquoi
-  - 💼 Rachat LPP: montant, déductibilité intégrale admise
-  - 🏦 Pilier 3a: montant versé, plafond appliqué, économie générée
-  - 👨‍👩‍👧 Enfants à charge: garde complète/partagée, déduction applicable
-  - 🏥 Frais médicaux: seuil cantonal franchi → déduction retenue
-  - 📊 Subsides LAMal: éligibilité détectée
-  - etc.
-- Récapitulatif: revenu imposable initial → après déductions → économie totale estimée
-- Signature: "Établi sur la base du règlement fiscal [Canton], [année]. JurAI Tax — PEP's Swiss SA"
+### Ce que reçoit l'abonné
+- 🔗 **Magic Link** — pas de mot de passe, jamais
+- 📋 **Identité pré-remplie** (commune, état civil, enfants, adresse)
+- 📅 **3 rappels automatiques** : 1er mars, 20 mars, 5 avril
+- 📄 **Rapport fiscal A4 personnalisé** chaque année
+- ⏱ **Prolongation délai incluse** (CHF 9 offerts)
+- 📊 Historique comparatif année N vs N-1
 
-### Valeur pour le client
-- Comprend exactement ce qui a été fait et pourquoi — **en sa langue**
-- Peut comparer avec les années suivantes (évolution)
-- Preuve de sérieux et de transparence
+### Ce qu'on conserve (LPD conforme)
+- Identité uniquement (pas les montants, pas les documents)
+- Email + langue + canton
+- Documents détruits après traitement
 
-### Valeur pour PEP's Swiss SA / WIN WIN
-- **Décharge de responsabilité documentée**: chaque choix fiscal est justifié par écrit
-- **Preuve de valeur ajoutée**: le client voit concrètement l'économie réalisée
-- **Différenciateur unique**: aucun logiciel fiscal grand public ne produit ce document
-- **Fidélisation**: le client revient chaque année avec "son" rapport
+### Ce qu'on NE conserve PAS
+- Documents uploadés (détruits après OCR)
+- Montants fiscaux détaillés
+- Données sensibles non-essentielles
 
-### Disponibilité
-- 7 langues dès le départ (FR/DE/IT/PT/ES/EN/UK)
-- Inclus dans le prix standard CHF 49
-- Inclus dans tous les packs B2B
+### Calendrier rappels automatiques (via Resend)
+| Date | Email |
+|------|-------|
+| 1er mars | "Votre déclaration 2026 — commencez maintenant" |
+| 20 mars | Rappel si pas commencé |
+| 5 avril | Urgence — délai cantonal approche |
 
 ---
 
-## 🏗️ ARCHITECTURE TECHNIQUE
+## 🌍 LANGUES — 7 TIER 1
 
-### Stack implémentée
-- **Frontend:** React + Zustand + Vite
-- **i18n:** src/i18n.js — 220+ clés, 7 langues ✅ FAIT (v3.0)
-- **Détection canton:** src/cantonDetector.js — par nom de domaine ✅ FAIT
-- **Sélecteur langue:** src/LangSelector.jsx — dropdown dans chaque écran ✅ FAIT
-- **State:** src/store.js — avec lang + canton + cantonConfig + audit trail ✅ FAIT
-- **App.jsx:** détection canton au démarrage, theme accent dynamique ✅ FAIT
-- **Screens:** tous traduits (Welcome/Courrier/B2B/Loading/Paywall/Result) ✅ FAIT
-- **Moteur fiscal:** src/engine.js — Jura 2025
+| Code | Langue | Pop. CH | Zone | Argument |
+|------|--------|---------|------|----------|
+| fr | Français | ~2M | JU/NE/GE/VD | Langue officielle |
+| de | Deutsch | ~5M | ZH/BE/BS | Expansion ZH |
+| it | Italiano | ~330'000 | TI/ZH/GE | Interface TI déjà prête |
+| pt | Português | ~270'000 | JU/NE/GE | 1ère minorité JU |
+| es | Español | ~105'000 | GE/VD/ZH | |
+| en | English | ~45'000 | ZH/GE | Expats |
+| uk | Українська | ~65'000 | BE/ZH/VD/GE | 1er logiciel fiscal suisse en ukrainien |
 
-### Stack à venir
-- **Backend:** Node.js + Express + PostgreSQL
-- **Hébergement dev:** Railway (juraitax-app-production-f257.up.railway.app)
-- **Hébergement prod:** Infomaniak Suisse (migration obligatoire avant clients réels LPD)
-- **OCR/IA:** Claude API Anthropic (Sonnet)
-- **Paiements:** Stripe (CHF natif + Twint)
-- **Emails:** Resend
-- **Rapport fiscal:** Génération PDF dynamique (reportlab/puppeteer) — À IMPLÉMENTER
+**Tier 2 (roadmap)** : Albanais (115'000), Serbe/Croate/Bosnien (150'000+), Turc (80'000)
 
-### Détection domaine → canton automatique
+---
+
+## 🗺️ EXPANSION CANTONALE
+
+| Phase | Canton | Domaine | DI/an | Timeline | État |
+|-------|--------|---------|-------|----------|------|
+| 1 | **Jura (JU)** | juraitax.ch | 42'000 | ✅ | EN PRODUCTION |
+| 2 | Neuchâtel (NE) | neuchtaix.ch | 85'000 | Q3 2026 | Planifié |
+| 2 | **Tessin (TI)** | ticinaitax.ch | 175'000 | Q4 2026 | IT déjà codé |
+| 3 | Fribourg (FR) | fritaix.ch | 130'000 | Q1 2027 | |
+| 3 | Valais (VS) | vstaix.ch | 165'000 | Q1 2027 | |
+| 4 | Vaud (VD) | vaudtaix.ch | 360'000 | Q3 2027 | |
+| 4 | Genève (GE) | getaix.ch | 240'000 | Q3 2027 | |
+| 5 | **Zurich (ZH)** | zuritaix.ch | 500'000 | 2028 | 🏆 |
+
+**Total marché : 1'700'000+ DI/an**
+
+---
+
+## 🏗️ STACK TECHNIQUE
+
+| Composant | Tech | État |
+|-----------|------|------|
+| Frontend | React 19 + Zustand + Vite | ✅ |
+| i18n | Custom hook — 7 langues, 220+ clés | ✅ |
+| Détection canton | cantonDetector.js (domaine → config) | ✅ |
+| Moteur fiscal | engine.js — Jura 2025 | ✅ |
+| Design system | Luxury Swiss Banking Dark + tAIx brand | ✅ |
+| **Checklist docs** | **ChecklistDocs.jsx — 21 docs, camera mobile** | **✅ Mars 2026** |
+| **Rapport fiscal A4** | **RapportFiscal.js — jsPDF, dynamique, 7 langues** | **✅ Mars 2026** |
+| **Abonnement** | **SubscriptionOffer + store subscriber** | **✅ Mars 2026** |
+| OCR Claude API | À connecter | 🟡 |
+| Backend | Node.js + PostgreSQL | 🟡 |
+| Auth Magic Link | Resend | 🟡 |
+| Paiement | Stripe | 🟡 |
+| Emails rappels | Resend (cron annuel) | 🟡 |
+| Hébergement prod | Infomaniak (LPD) | 🟡 migration |
+| Hébergement dev | Railway | ✅ |
+
+---
+
+## 📱 PARCOURS UTILISATEUR
+
 ```
-juraitax.ch    → JU + lang FR
-neuchtaix.ch   → NE + lang FR
-ticinaitax.ch  → TI + lang IT
-vstaix.ch      → VS + lang FR
-zuritaix.ch    → ZH + lang DE
-fritaix.ch     → FR + lang FR
+Welcome → Checklist Documents (21 docs, camera) 
+       → Form (pré-rempli si docs uploadés)
+       → Loading (OCR + calcul fiscal)
+       → Paywall (CHF 49 — B2C) / Direct (B2B gratuit)
+       → Résultat (PDF DI + Rapport fiscal A4)
+       → SubscriptionOffer (CHF 49/an — B2C uniquement)
+```
+
+### B2B (fiduciaires)
+```
+B2BLogin (email seul → Magic Link à venir)
+       → Dashboard multi-dossiers
+       → Form par client
+       → Résultat → Rapport fiscal A4
+       → Nouveau dossier
 ```
 
 ---
 
-## 📋 PHILOSOPHIE EXTRACTION DONNÉES
+## 📄 LIVRABLES APRÈS DÉCLARATION
 
-### Règle d'or — Upload First
-- **JAMAIS** poser une question si un document peut répondre
-- Téléverse → IA extrait → client confirme
+### 1. PDF Déclaration officielle
+- Format officiel cantonal
+- Prêt à soumettre à l'autorité fiscale
 
-### DI précédente (année N-1)
-- ✅ Import **identité seulement**: nom, prénom, commune, état civil, confession, enfants, n° contribuable
-- ❌ **JAMAIS les chiffres**: revenus, déductions, fortune → toujours recalculés depuis sources 2025
-
-### Audit Trail — 4 états
-| État | Couleur | Signification |
-|---|---|---|
-| AI 🟢 | Vert | Extrait automatiquement depuis document |
-| IMPORTED 🟡 | Jaune | Identité depuis DI précédente |
-| USER 🔴 | Rouge | Client a modifié la valeur IA (horodaté) |
-| MANUAL ⚪ | Gris | Saisi manuellement, aucun document |
+### 2. Rapport fiscal personnalisé A4
+- 1 page, généré client-side (jsPDF)
+- Dynamique — sections selon situation du client
+- Explique chaque décision fiscale en langage clair
+- Disponible en 7 langues
+- Sections : pilier 3a, rachat LPP, frais entretien (forfait vs réel), garde, frais médicaux, primes LAMal, dons
+- Récapitulatif : revenu brut → déductions → impôt total
+- Décharge responsabilité PEP's Swiss SA (mention légale)
+- **Différenciateur unique — aucun concurrent ne propose cela**
 
 ---
 
-## 🚀 DÉPLOIEMENT ACTUEL
+## 🤝 PARTENARIAT WIN WIN
 
-- **GitHub:** https://github.com/O-N-2950/juraitax
-- **Railway (dev):** https://juraitax-app-production-f257.up.railway.app
-- **Railway Project ID:** 77f3852f-a31f-45e6-b983-6dc243dc4f1d
-- **Railway Service ID:** 03505601-aa45-41ec-aa76-606fa6c0d2ee
-- **Dernier commit:** feat ukrainien (7ème langue) + clés rapport fiscal i18n
-
----
-
-## 📄 DOCUMENTS PRODUITS
-
-| Document | Localisation | Version | Date |
-|---|---|---|---|
-| Business Plan PDF | /mnt/user-data/outputs/ | v3.0 | Mars 2026 |
-| i18n.js (7 langues) | GitHub src/i18n.js | v3.0 | Mars 2026 |
-| CONTEXT.md (ce fichier) | GitHub CONTEXT.md | v3.0 | Mars 2026 |
+- WIN WIN Finance Group SARL (FINMA F01042365)
+- Accès illimité gratuit : contact@winwin.swiss
+- B2B Login : email seul (pas de mot de passe)
+- Flux : tAIx traite DI → profil financier complet → WIN WIN conseille dans la langue du client
+- **Avantage unique** : 1er courtier FINMA conseillant en PT, ES, UK — jamais fait en Suisse
 
 ---
 
-## ✅ TODO LIST — État Mars 2026
+## ✅ TODO LIST
 
 ### 🔴 IMMÉDIAT (cette semaine)
-- [ ] Tester dossier André Neukomm sur Railway (flux complet B2B)
+- [ ] Test flux complet avec papa (B2B WIN WIN sur Railway)
 - [ ] Valider moteur fiscal Jura 2025 avec vraies attestations
-- [ ] Consulter avocat jurassien pour validation CGU (~CHF 300, 1h)
-- [ ] Créer compte Stripe (activer paiement réel)
+- [ ] Consulter avocat jurassien — CGU (~CHF 300)
+- [ ] Créer compte Stripe
+- [ ] Connecter **clé Anthropic API** (récupérer depuis Railway) → OCR réel
 
 ### 🟡 COURT TERME (avant 15 mars 2026)
-- [ ] **Migration Railway → Infomaniak** (obligatoire avant clients réels — données fiscales LPD)
-- [ ] Backend Node.js + PostgreSQL (remplacer state Zustand)
-- [ ] Connexion Claude API (OCR documents réels)
-- [ ] Paiement Stripe réel avec paywall actif
-- [ ] Emails confirmation + PDF via Resend
-- [ ] **Générateur Rapport fiscal A4** (PDF dynamique par client)
-- [ ] 5-10 premiers clients réels (réseau WIN WIN)
-- [ ] Campagne "100 premiers à CHF 29" sur réseaux locaux
+- [ ] Migration Railway → **Infomaniak** (LPD obligatoire)
+- [ ] Backend Node.js + PostgreSQL
+  - [ ] Table `subscribers` (email, identité, langue, canton, dates rappels)
+  - [ ] Endpoint POST /api/subscribe
+  - [ ] Cron Resend — rappels annuels automatiques
+- [ ] Claude API OCR — lire vrais documents uploadés
+- [ ] Stripe paywall actif (CHF 49)
+- [ ] Magic Link via Resend
+- [ ] Emails rappels abonnement (3 dates : 1 mars, 20 mars, 5 avril)
+- [ ] Campagne "100 premiers à CHF 29"
+- [ ] Configurer **taix.ch** → redirect hub cantons
 
 ### 🟠 MOYEN TERME (Q2-Q3 2026)
-- [ ] Module NE — Neuchâtel (neuchtaix.ch)
-- [ ] Module TI — Tessin (ticinaitax.ch) — interface IT + **communauté ukrainienne TI** déjà prête!
-- [ ] Interface B2B multi-dossiers tableau de bord fiduciaires
-- [ ] Comparaison avis de taxation vs déclaration
-- [ ] Langues Tier 2: Albanais + Serbe/Croate/Bosnien
-- [ ] Premier partenariat fiduciaire payant Canton du Jura
-- [ ] Partenariat associations ukrainiennes en Suisse (bouche à oreille)
+- [ ] Module Neuchâtel (NE)
+- [ ] **Module Tessin (TI)** — interface IT déjà prête, moteur fiscal TI à coder
+- [ ] Interface B2B multi-dossiers (dashboard fiduciaire)
+- [ ] Partenariat fiduciaires JU (Porrentruy, Delémont)
+- [ ] **Contact associations ukrainiennes Suisse** (bouche-à-oreille)
+- [ ] App mobile iOS/Android (PWA d'abord, puis native)
+- [ ] Langues Tier 2 : Albanais + Serbe/Croate/Bosnien
 
-### 🔵 LONG TERME (2027+)
-- [ ] VS + FR bilingues (fr/de)
-- [ ] VD + GE grands marchés
-- [ ] **ZH — Zurich 500'000 DI/an** (zuritaix.ch) — plus grand marché Suisse
-- [ ] Turc — communauté ZH/Biel
-- [ ] Albanais — communauté BE/ZH
-- [ ] API banques cantonales / caisses de pension (distribution B2B2C)
-- [ ] Module analyse rétrospective 3 ans (réclamations impôts particuliers)
-- [ ] Application mobile native iOS + Android
-- [ ] **WIN WIN v2** — Application courtage IA multilingue (même stack, même infra)
-
-### ✅ DÉJÀ FAIT
-- [x] App React complète déployée sur Railway
-- [x] Moteur fiscal Jura 2025 (ICC + IFD + fortune)
-- [x] Système i18n **7 langues** (FR/DE/IT/PT/ES/EN/**UK**) — 220+ clés
-- [x] Détection automatique canton par domaine
-- [x] Sélecteur de langue dropdown (LangSelector.jsx)
-- [x] Store Zustand avec lang + canton + audit trail
-- [x] Tous les écrans traduits (Welcome/Courrier/B2B/Loading/Paywall/Result)
-- [x] Accès B2B (contact@winwin.swiss — illimité gratuit)
-- [x] Écran courrier seniors (CHF 49, adresse Courgenay)
-- [x] Paywall post-calcul avec optimisations floutées
-- [x] CTA WIN WIN en fin de parcours — multilingue
-- [x] Portfolio 11 domaines achetés sur Infomaniak
-- [x] Business Plan PDF v3.0 (sans critique des fiduciaires, avec Tessin + Zurich + ukrainien + rapport fiscal)
-- [x] CONTEXT.md v3.0 complet
+### 🔵 LONG TERME (2027-2028)
+- [ ] VS + FR (cantons bilingues)
+- [ ] VD + GE (grands marchés)
+- [ ] **ZURICH (ZH) — 500'000 DI/an**
+- [ ] WIN WIN v2 : courtage IA multilingue complet
+- [ ] Mobile natif iOS + Android
 
 ---
 
-## 🔗 CONNEXION WIN WIN v2
+## ✅ DÉJÀ LIVRÉ
 
-JurAI Tax = **top of funnel** de WIN WIN v2.
-Chaque client JurAI Tax = lead qualifié avec profil financier complet.
-WIN WIN v2 = application de courtage IA multilingue (même architecture, même stack).
-Les deux apps partagent: base clients, système multilingue, infrastructure Infomaniak.
-
-**Pont multilingue = avantage concurrentiel unique:**
-- JurAI Tax en portugais → WIN WIN conseille en portugais → fidélisation communauté portugaise
-- JurAI Tax en ukrainien → WIN WIN conseille en ukrainien → fidélisation réfugiés ukrainiens
-- JurAI Tax en albanais → WIN WIN conseille en albanais → fidélisation communauté kosovare
+- [x] Frontend React — Welcome, Form, Loading, Paywall, Result
+- [x] i18n 7 langues (FR/DE/IT/PT/ES/EN/UK) — 220+ clés
+- [x] Moteur fiscal Jura 2025
+- [x] B2B Login (email → accès fiduciaires)
+- [x] **ChecklistDocs.jsx** — 21 documents, camera mobile, 7 langues
+- [x] **RapportFiscal.js** — générateur PDF A4 dynamique jsPDF, 7 langues
+- [x] **SubscriptionOffer** — écran abonnement CHF 49/an + bouton résultat
+- [x] store.js — subscriber state + saveSubscriberProfile
+- [x] Mobile responsive CSS (touch targets, safe-area, iOS zoom fix)
+- [x] Logo tAIx officiel — "Déclarations Fiscales Suisses Intelligentes"
+- [x] Domaine **taix.ch** acquis
+- [x] Business Plan PDF v3.0 (10 chapitres, Tessin + Zurich + ukrainien)
+- [x] CONTEXT.md v4.0
 
 ---
-*Dernière mise à jour: Mars 2026 v3.0 | PEP's Swiss SA + Claude (Anthropic)*
+
+## 📊 PROJECTIONS FINANCIÈRES
+
+| Année | Cantons | DI traitées | CA | EBITDA |
+|-------|---------|-------------|-----|--------|
+| 2026 | JU | ~1'000 | CHF 45k | Investissement |
+| 2027 | JU+NE+TI+FR+VS | ~8'000 | CHF 340k | ~CHF 50k |
+| 2028 | +VD+GE | ~25'000 | CHF 1'150k | ~CHF 350k |
+| 2029 | +ZH | ~60'000 | CHF 2'800k | ~CHF 900k |
+| 2030 | Tous + Mobile | ~150'000 | CHF 7'200k | ~CHF 2'500k |
+
+*Taux pénétration conservateur 0.5% à 3% selon canton.*
+
+---
+
+*CONTEXT.md v4.0 — tAIx / JurAI Tax — PEP's Swiss SA × WIN WIN Finance Group SARL — Mars 2026*
