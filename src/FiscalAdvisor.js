@@ -111,16 +111,17 @@ Réponds en JSON strict, aucun autre texte :
 // ── Détection automatique du profil ──────────────────────────────────
 function detecterProfil(data) {
   const profil = {
-    type: "salarie",          // salarie|independant|retraite|etudiant|chomage
-    situation_familiale: "seul",  // seul|marie|divorce|veuf
+    type: "salarie",
+    situation_familiale: "seul",
     nb_enfants: 0,
     proprietaire: false,
     a_3a: false,
     a_lpp: false,
     a_hypotheque: false,
     a_fortune_importante: false,
-    jeune_contribuable: false,  // <26 ans → étudiant probable
-    nouveau_contribuable: false,  // première DI
+    jeune_contribuable: false,
+    nouveau_contribuable: false,
+    age: null,
     activites: [],
   };
 
@@ -128,6 +129,8 @@ function detecterProfil(data) {
     profil.situation_familiale = "marie";
   } else if (data.etat_civil === "divorce") {
     profil.situation_familiale = "divorce";
+  } else if (data.etat_civil === "veuf") {
+    profil.situation_familiale = "veuf";
   }
 
   profil.nb_enfants = parseInt(data.enfants || data.nb_enfants || 0);
@@ -137,18 +140,31 @@ function detecterProfil(data) {
   profil.proprietaire = (data.for_immobilier || 0) > 0;
   profil.a_fortune_importante = (data.solde_bancaire || 0) > 200000;
 
+  // Détection âge depuis date de naissance
   if (data.naissance) {
-    const age = new Date().getFullYear() - parseInt(data.naissance.split("-")[0]);
-    if (age < 27) profil.jeune_contribuable = true;
-    if (age >= 64) profil.type = "retraite";
+    try {
+      const anneeNaissance = parseInt((data.naissance || "").split(/[-/]/)[0]);
+      if (anneeNaissance > 1900 && anneeNaissance < 2010) {
+        profil.age = new Date().getFullYear() - anneeNaissance;
+        if (profil.age < 27) profil.jeune_contribuable = true;
+        if (profil.age >= 64) profil.type = "retraite";
+      }
+    } catch {}
   }
 
+  // Détection retraité par revenus (même sans date de naissance)
+  // Si rente AVS ou LPP présente et pas de salaire → retraité
+  const hasRente = (data.rev_avs || 0) > 0 || (data.rev_lpp_rente || 0) > 0;
+  const hasSalaire = (data.rev_salaire || 0) > 0;
+  if (hasRente && !hasSalaire) profil.type = "retraite";
+
+  // Surcharge explicite
   if ((data.activites || []).includes("independant")) profil.type = "independant";
-  if ((data.activites || []).includes("chomage")) profil.type = "chomage";
-  if ((data.activites || []).includes("etudiant")) profil.type = "etudiant";
+  if ((data.activites || []).includes("chomage"))     profil.type = "chomage";
+  if ((data.activites || []).includes("etudiant"))    profil.type = "etudiant";
+  if ((data.activites || []).includes("retraite"))    profil.type = "retraite";
 
   profil.activites = data.activites || [];
-
   return profil;
 }
 
@@ -258,109 +274,170 @@ export async function genererQuestionsIA(ocrResults, storeData, lang = "fr") {
 }
 
 // ── Questions de secours si pas d'API ────────────────────────────────
-// Logique statique basée sur le profil — fonctionne sans clé
 function getFallbackQuestions(data, lang = "fr") {
   const profil = detecterProfil(data);
   const questions = [];
   let prio = 1;
+  const estRetraite = profil.type === "retraite";
 
   const T = {
     fr: {
-      q3a: "Avez-vous versé sur un pilier 3a en 2025 ?",
-      q3a_exp: "Déductible jusqu'à CHF 7'056. Impact fiscal direct.",
-      qlpp: "Avez-vous effectué un rachat dans votre caisse de pension ?",
-      qlpp_exp: "100% déductible du revenu imposable.",
-      qgarde: "Avez-vous des frais de garde d'enfants ?",
+      q3a:        "Avez-vous versé sur un pilier 3a en 2025 ?",
+      q3a_exp:    "Déductible jusqu'à CHF 7'058. Impact fiscal direct.",
+      qlpp:       "Avez-vous effectué un rachat dans votre caisse de pension ?",
+      qlpp_exp:   "100% déductible du revenu imposable.",
+      qgarde:     "Avez-vous des frais de garde d'enfants ?",
       qgarde_exp: "Déductibles jusqu'à CHF 10'100 par enfant.",
-      qetudiant: "Avez-vous des frais de formation ou de perfectionnement ?",
+      qetudiant:  "Avez-vous des frais de formation ou de perfectionnement ?",
       qetudiant_exp: "Déductibles jusqu'à CHF 12'000.",
       qtransport: "Quel est votre trajet domicile-travail (km aller-retour) ?",
       qtransport_exp: "Frais de transport déductibles selon barème.",
-      qtelework: "Avez-vous travaillé à domicile en 2025 ? (jours/semaine)",
+      qtelework:  "Avez-vous travaillé à domicile en 2025 ? (jours/semaine)",
       qtelework_exp: "Forfait télétravail déductible depuis 2022.",
-      qdon: "Avez-vous fait des dons à des associations en 2025 ?",
-      qdon_exp: "Dons > CHF 100 déductibles (associations reconnues).",
+      qdon:       "Avez-vous fait des dons à des associations en 2025 ?",
+      qdon_exp:   "Dons > CHF 100 déductibles (associations reconnues).",
+      qmed:       "Avez-vous eu des frais médicaux importants en 2025 ?",
+      qmed_exp:   "Déductibles au-delà de 5% du revenu net. Factures médecin, dentiste, médicaments non remboursés.",
+      qsubside:   "Bénéficiez-vous déjà de subsides LAMal (réduction de prime) ?",
+      qsubside_exp: "Les retraités sont souvent éligibles. Jusqu'à CHF 2'700/an.",
     },
     de: {
-      q3a: "Haben Sie 2025 in die Säule 3a einbezahlt?",
-      q3a_exp: "Abzugsfähig bis CHF 7'056. Direkter Steuereffekt.",
-      qlpp: "Haben Sie einen Einkauf in Ihre Pensionskasse getätigt?",
-      qlpp_exp: "100% vom steuerbaren Einkommen abzugsfähig.",
-      qgarde: "Haben Sie Kinderbetreuungskosten?",
+      q3a:        "Haben Sie 2025 in die Säule 3a einbezahlt?",
+      q3a_exp:    "Abzugsfähig bis CHF 7'058.",
+      qlpp:       "Haben Sie einen Einkauf in Ihre Pensionskasse getätigt?",
+      qlpp_exp:   "100% vom steuerbaren Einkommen abzugsfähig.",
+      qgarde:     "Haben Sie Kinderbetreuungskosten?",
       qgarde_exp: "Bis CHF 10'100 pro Kind abzugsfähig.",
-      qetudiant: "Haben Sie Aus- oder Weiterbildungskosten?",
+      qetudiant:  "Haben Sie Aus- oder Weiterbildungskosten?",
       qetudiant_exp: "Bis CHF 12'000 abzugsfähig.",
       qtransport: "Wie lang ist Ihr Arbeitsweg? (km Hin- und Rückfahrt)",
       qtransport_exp: "Fahrtkosten nach Tarif abzugsfähig.",
-      qtelework: "Haben Sie 2025 im Homeoffice gearbeitet?",
+      qtelework:  "Haben Sie 2025 im Homeoffice gearbeitet?",
       qtelework_exp: "Homeoffice-Pauschale seit 2022 abzugsfähig.",
-      qdon: "Haben Sie 2025 Spenden geleistet?",
-      qdon_exp: "Spenden > CHF 100 an anerkannte Organisationen abzugsfähig.",
+      qdon:       "Haben Sie 2025 Spenden geleistet?",
+      qdon_exp:   "Spenden > CHF 100 an anerkannte Organisationen abzugsfähig.",
+      qmed:       "Hatten Sie 2025 hohe Krankheitskosten?",
+      qmed_exp:   "Abzugsfähig über 5% des Nettoeinkommens.",
+      qsubside:   "Erhalten Sie bereits Prämienverbilligung?",
+      qsubside_exp: "Viele Rentner sind berechtigt. Bis CHF 2'700/Jahr.",
     },
   };
   const t = T[lang] || T.fr;
 
-  // Subside LAMal — toujours demander
-  questions.push({ id: "q_subside", type: "oui_non",
-    question: lang==="de" ? "Erhalten Sie bereits Prämienverbilligung für Ihre Krankenkasse?" :
-              lang==="it" ? "Beneficiate già di sussidi per la cassa malati?" :
-              lang==="en" ? "Do you already receive health insurance premium subsidies?" :
-              "Bénéficiez-vous déjà de subsides pour votre caisse maladie (réduction de prime LAMal) ?",
-    explication: lang==="de" ? "Viele Berechtigte beantragen keine Prämienverbilligung." :
-                 lang==="it" ? "Molti aventi diritto non richiedono sussidi." :
-                 lang==="en" ? "Many eligible people do not claim premium reductions." :
-                 "Beaucoup de personnes éligibles ne demandent pas leurs subsides.",
+  // ── SUBSIDE LAMal — toujours (retraités très éligibles) ──────────
+  questions.push({
+    id: "q_subside", type: "oui_non",
+    question: t.qsubside,
+    explication: t.qsubside_exp,
     impact_estime: "jusqu'à CHF 2'700/an",
     deduction_cible: "beneficie_subside",
-    priorite: prio++ });
+    priorite: prio++
+  });
 
-  // 3a — toujours demander si pas déjà renseigné
-  if (!data.pilier_3a || data.pilier_3a === 0) {
-    questions.push({ id: "q_3a", type: "oui_non", question: t.q3a, explication: t.q3a_exp,
-      impact_estime: "jusqu'à CHF 1'100", deduction_si_oui: "pilier_3a_montant", priorite: prio++ });
+  // ── FRAIS MÉDICAUX — retraités en priorité ───────────────────────
+  if (estRetraite || (profil.age && profil.age >= 55)) {
+    if (!data.frais_medicaux || data.frais_medicaux === 0) {
+      questions.push({
+        id: "q_med", type: "montant",
+        question: t.qmed,
+        explication: t.qmed_exp,
+        impact_estime: "variable selon revenu",
+        deduction_cible: "frais_medicaux",
+        priorite: prio++
+      });
+    }
   }
 
-  // LPP rachat
-  if (!data.rachat_lpp || data.rachat_lpp === 0) {
-    questions.push({ id: "q_lpp", type: "oui_non", question: t.qlpp, explication: t.qlpp_exp,
-      impact_estime: "jusqu'à CHF 2'500", deduction_si_oui: "rachat_lpp_montant", priorite: prio++ });
-  }
-
-  // Enfants → frais de garde
-  if (profil.nb_enfants > 0 && (!data.frais_garde || data.frais_garde === 0)) {
-    questions.push({ id: "q_garde", type: "montant", question: t.qgarde, explication: t.qgarde_exp,
-      impact_estime: "jusqu'à CHF 1'500", deduction_cible: "frais_garde", max_valeur: 10100, priorite: prio++ });
-  }
-
-  // Étudiant / jeune → frais formation
-  if (profil.jeune_contribuable || profil.type === "etudiant") {
-    questions.push({ id: "q_formation", type: "montant", question: t.qetudiant, explication: t.qetudiant_exp,
-      impact_estime: "jusqu'à CHF 1'800", deduction_cible: "frais_formation", max_valeur: 12000, priorite: prio++ });
-  }
-
-  // Transport domicile-travail
-  questions.push({ id: "q_transport", type: "nombre", question: t.qtransport, explication: t.qtransport_exp,
-    impact_estime: "CHF 300 – 1'500", deduction_cible: "km_trajet", priorite: prio++ });
-
-  // Télétravail
-  questions.push({ id: "q_telework", type: "choix", question: t.qtelework, explication: t.qtelework_exp,
-    options: ["Non","1 jour/semaine","2 jours/semaine","3 jours/semaine","Plus de 3 jours"],
-    impact_estime: "CHF 200 – 800", deduction_cible: "jours_teletravail", priorite: prio++ });
-
-  // Dons
+  // ── DONS ─────────────────────────────────────────────────────────
   if (!data.dons || data.dons === 0) {
-    questions.push({ id: "q_dons", type: "oui_non", question: t.qdon, explication: t.qdon_exp,
-      impact_estime: "variable", deduction_si_oui: "dons_montant", priorite: prio++ });
+    questions.push({
+      id: "q_dons", type: "oui_non",
+      question: t.qdon,
+      explication: t.qdon_exp,
+      impact_estime: "variable",
+      deduction_si_oui: "dons_montant",
+      priorite: prio++
+    });
   }
+
+  // ── QUESTIONS SPÉCIFIQUES ACTIFS (PAS pour retraités) ────────────
+  if (!estRetraite) {
+    // 3a — uniquement actifs (retraités ne peuvent plus cotiser après l'âge de la retraite)
+    if (!data.pilier_3a || data.pilier_3a === 0) {
+      questions.push({
+        id: "q_3a", type: "oui_non",
+        question: t.q3a, explication: t.q3a_exp,
+        impact_estime: "jusqu'à CHF 1'100",
+        deduction_si_oui: "pilier_3a_montant",
+        priorite: prio++
+      });
+    }
+
+    // Rachat LPP — uniquement actifs
+    if (!data.rachat_lpp || data.rachat_lpp === 0) {
+      questions.push({
+        id: "q_lpp", type: "oui_non",
+        question: t.qlpp, explication: t.qlpp_exp,
+        impact_estime: "jusqu'à CHF 2'500",
+        deduction_si_oui: "rachat_lpp_montant",
+        priorite: prio++
+      });
+    }
+
+    // Trajet domicile-travail — uniquement actifs
+    questions.push({
+      id: "q_transport", type: "nombre",
+      question: t.qtransport, explication: t.qtransport_exp,
+      impact_estime: "CHF 300 – 1'500",
+      deduction_cible: "km_trajet",
+      priorite: prio++
+    });
+
+    // Télétravail — uniquement actifs
+    questions.push({
+      id: "q_telework", type: "choix",
+      question: t.qtelework, explication: t.qtelework_exp,
+      options: ["Non","1 jour/semaine","2 jours/semaine","3 jours/semaine","Plus de 3 jours"],
+      impact_estime: "CHF 200 – 800",
+      deduction_cible: "jours_teletravail",
+      priorite: prio++
+    });
+  }
+
+  // ── ENFANTS → frais de garde (pas pour retraités) ────────────────
+  if (!estRetraite && profil.nb_enfants > 0 && (!data.frais_garde || data.frais_garde === 0)) {
+    questions.push({
+      id: "q_garde", type: "montant",
+      question: t.qgarde, explication: t.qgarde_exp,
+      impact_estime: "jusqu'à CHF 1'500",
+      deduction_cible: "frais_garde", max_valeur: 10100,
+      priorite: prio++
+    });
+  }
+
+  // ── ÉTUDIANT → frais formation ───────────────────────────────────
+  if (profil.jeune_contribuable || profil.type === "etudiant") {
+    questions.push({
+      id: "q_formation", type: "montant",
+      question: t.qetudiant, explication: t.qetudiant_exp,
+      impact_estime: "jusqu'à CHF 1'800",
+      deduction_cible: "frais_formation", max_valeur: 12000,
+      priorite: prio++
+    });
+  }
+
+  const resumeProfil = estRetraite
+    ? (profil.age ? `Retraité${profil.situation_familiale==="veuf"?" (veuf/ve)":""}${profil.age ? ` · ${profil.age} ans` : ""}` : "Retraité(e)")
+    : profil.nb_enfants > 0 ? `Famille avec ${profil.nb_enfants} enfant(s)`
+    : profil.type === "etudiant" ? "Étudiant(e)"
+    : profil.type === "chomage" ? "En recherche d'emploi"
+    : "Salarié(e)";
 
   return {
     questions: questions.slice(0, 8),
     alertes: [],
-    resume_profil: profil.type === "etudiant" ? "Étudiant" :
-                   profil.nb_enfants > 0 ? `Famille avec ${profil.nb_enfants} enfant(s)` :
-                   profil.a_hypotheque ? "Propriétaire immobilier" : "Salarié",
-    economie_potentielle_totale: "CHF 800 – 2'500",
-    _fallback: true,
+    resume_profil: resumeProfil,
+    type_profil: profil.type,
   };
 }
 

@@ -166,10 +166,35 @@ Réponds en JSON strict:
 }
 JSON uniquement.`,
 
-  // Générique pour tout autre document
-  default: `Tu es un expert fiscal suisse. Analyse ce document fiscal.
-Extrais toutes les informations financières pertinentes pour une déclaration d'impôt suisse.
-Réponds en JSON avec les champs trouvés. JSON uniquement, aucun autre texte.`,
+  // Générique pour tout autre document — extrait tous les champs possibles
+  default: `Tu es un expert fiscal suisse. Analyse ce document fiscal suisse.
+Identifie le type de document et extrais toutes les informations pertinentes.
+Réponds en JSON strict avec les champs trouvés parmi ceux-ci:
+{
+  "type_document": "di_prev|cert_sal|extrait_bancaire|facture|attestation|autre",
+  "prenom": "",
+  "nom": "",
+  "naissance": "YYYY-MM-DD",
+  "no_contribuable": "",
+  "etat_civil": "celibataire|marie|divorce|veuf",
+  "commune": "",
+  "enfants": 0,
+  "rev_salaire": 0,
+  "rev_avs": 0,
+  "rev_lpp_rente": 0,
+  "cotisations_lpp": 0,
+  "montant_3a": 0,
+  "montant_rachat_lpp": 0,
+  "solde_31dec": 0,
+  "banque": "",
+  "interets_hypothecaires": 0,
+  "valeur_fiscale": 0,
+  "montant_ttc": 0,
+  "montant_net_non_rembourse": 0,
+  "montant_don": 0,
+  "montant_annuel": 0
+}
+Inclure UNIQUEMENT les champs trouvés dans le document (ne pas inventer). JSON uniquement, aucun autre texte.`,
 };
 
 // ── OCR principal ────────────────────────────────────────────────────
@@ -243,6 +268,10 @@ const FIELD_MAP = {
   // Revenus (cert_sal)
   rev_salaire:         "rev_salaire",
   cotisations_lpp:     "cotisations_lpp",
+
+  // Rentes retraite
+  rev_avs:             "rev_avs",
+  rev_lpp_rente:       "rev_lpp_rente",
 
   // Déductions
   montant_3a:          "pilier_3a",
