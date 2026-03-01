@@ -1,14 +1,18 @@
-name: Deploy to Railway
+name: Build and Deploy
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'dist/**'
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -22,11 +26,16 @@ jobs:
         env:
           VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_BUILD_DATE: "2026-03-01"
         run: npm run build
       
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Commit dist to repo
         run: |
-          npm install -g @railway/cli
-          railway up --detach
+          git config user.name "tAIx Build Bot"
+          git config user.email "build@taix.ch"
+          # Remove dist from gitignore temporarily
+          git rm -r --cached dist/ 2>/dev/null || true
+          echo "# dist not ignored for Railway" > dist/.gitkeep
+          git add -f dist/
+          git commit -m "build: auto-deploy dist/ [skip ci]" || echo "Nothing to commit"
+          git push
