@@ -92,25 +92,55 @@ export function ChecklistScreen() {
   const { importFromDoc } = useStore();
 
   async function handleUpload(docId, e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploads(u => ({ ...u, [docId]: file }));
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    // Plusieurs pages : on ajoute aux pages existantes
+    setUploads(u => {
+      const prev = Array.isArray(u[docId]) ? u[docId] : u[docId] ? [u[docId]] : [];
+      return { ...u, [docId]: [...prev, ...files] };
+    });
     setChecked(c => ({ ...c, [docId]: true }));
-    
-    // Lancer OCR automatiquement
     setOcrStatus(s => ({ ...s, [docId]: "loading" }));
+
     try {
-      const result = await ocrDocument(file, docId);
-      if (!result._error) {
-        applyOCRToStore(result, importFromDoc, null, SOURCE);
+      // OCR page par page → merge des résultats
+      let merged = {};
+      for (let i = 0; i < files.length; i++) {
+        setOcrStatus(s => ({ ...s, [docId]: `loading_${i+1}_${files.length}` }));
+        const result = await ocrDocument(files[i], docId);
+        if (!result._error) {
+          // Merge : on garde la valeur non-nulle la plus récente
+          merged = mergeOcrResults(merged, result);
+        }
+      }
+      if (Object.keys(merged).length > 0) {
+        applyOCRToStore(merged, importFromDoc, null, SOURCE);
         setOcrStatus(s => ({ ...s, [docId]: "done" }));
-        setAllOcrResults(r => ({ ...r, [docId]: result }));
+        setAllOcrResults(r => ({ ...r, [docId]: merged }));
       } else {
         setOcrStatus(s => ({ ...s, [docId]: "error" }));
       }
     } catch {
       setOcrStatus(s => ({ ...s, [docId]: "error" }));
     }
+    // Reset input pour permettre d'ajouter d'autres pages
+    e.target.value = "";
+  }
+
+  // Fusionne deux résultats OCR : garde les valeurs non-nulles, additionne les montants cumulables
+  function mergeOcrResults(base, next) {
+    const merged = { ...base };
+    const ADDITIVE = new Set(["solde_bancaire","solde_31dec","frais_medicaux","dons","frais_garde"]);
+    for (const [k, v] of Object.entries(next)) {
+      if (v === null || v === "" || v === 0) continue;
+      if (ADDITIVE.has(k) && typeof v === "number" && typeof merged[k] === "number") {
+        merged[k] = (merged[k] || 0) + v;
+      } else if (!merged[k]) {
+        merged[k] = v;
+      }
+    }
+    return merged;
   }
 
   function toggleCheck(docId) {
@@ -122,7 +152,7 @@ export function ChecklistScreen() {
     subtitle: { fr:"Cochez chaque document disponible ou téléversez-le directement. L'IA s'occupe du reste.", de:"Haken Sie verfügbare Dokumente ab oder laden Sie sie hoch. Die KI erledigt den Rest.", it:"Spuntate i documenti disponibili o caricateli. L'IA fa il resto.", pt:"Marque os documentos disponíveis ou carregue-os. A IA trata do resto.", es:"Marque los documentos disponibles o súbalos. La IA hace el resto.", en:"Tick each available document or upload it directly. AI does the rest.", uk:"Позначте кожен доступний документ або завантажте його. ШІ зробить решту." },
     proceed:  { fr:"Commencer ma déclaration →",       de:"Steuererklärung starten →",              it:"Inizia la mia dichiarazione →",           pt:"Iniciar a minha declaração →",            es:"Iniciar mi declaración →",               en:"Start my tax return →",                   uk:"Почати мою декларацію →" },
     docs_ok:  { fr:"document(s) prêt(s)",              de:"Dokument(e) bereit",                     it:"documento/i pronto/i",                    pt:"documento(s) pronto(s)",                  es:"documento(s) listo(s)",                  en:"document(s) ready",                      uk:"документ(и) готовий/і" },
-    photo:    { fr:"📷 Photo",                          de:"📷 Foto",                                it:"📷 Foto",                                  pt:"📷 Foto",                                 es:"📷 Foto",                                en:"📷 Photo",                               uk:"📷 Фото" },
+    photo:    { fr:"📷 Photo(s)",                          de:"📷 Foto",                                it:"📷 Foto",                                  pt:"📷 Foto",                                 es:"📷 Foto",                                en:"📷 Photo",                               uk:"📷 Фото" },
     upload:   { fr:"📎 Fichier",                        de:"📎 Datei",                               it:"📎 File",                                  pt:"📎 Ficheiro",                             es:"📎 Archivo",                             en:"📎 File",                               uk:"📎 Файл" },
     required: { fr:"Recommandé",                        de:"Empfohlen",                              it:"Consigliato",                              pt:"Recomendado",                             es:"Recomendado",                            en:"Recommended",                            uk:"Рекомендовано" },
     skip:     { fr:"Passer sans ce document",           de:"Ohne dieses Dokument weiter",            it:"Continua senza questo documento",          pt:"Continuar sem este documento",            es:"Continuar sin este documento",           en:"Skip this document",                     uk:"Пропустити цей документ" },
@@ -270,7 +300,7 @@ export function ChecklistScreen() {
                                 ✓ {uploads[doc.id].name?.substring(0,20)}
                               </span>
                             )}
-                            {ocrStatus[doc.id] === "loading" && (
+                            {ocrStatus[doc.id]?.startsWith("loading") && (
                               <span style={{ fontSize:9, background:"rgba(201,168,76,0.1)", border:"1px solid rgba(201,168,76,0.3)",
                                              color:"#C9A84C", borderRadius:99, padding:"1px 7px",
                                              fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
@@ -293,39 +323,59 @@ export function ChecklistScreen() {
                           {/* Boutons upload */}
                           {doc.camera && !isDone && (
                             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                              {/* Prise de photo directe (mobile) */}
+                              {/* Prise de photo (mobile) — plusieurs pages possibles */}
                               <label style={{
                                 display:"inline-flex", alignItems:"center", gap:5,
                                 background: S.surface, border:`1px solid ${S.border}`,
                                 borderRadius:8, padding:"6px 12px", cursor:"pointer",
                                 fontSize:12, color: S.gold, fontFamily:"'Outfit',sans-serif", fontWeight:600
                               }}>
-                                {L(labels.photo)}
+                                📷 {lang === "de" ? "Foto(s)" : lang === "it" ? "Foto" : lang === "en" ? "Photo(s)" : "Photo(s)"}
                                 <input type="file" accept="image/*" capture="environment"
+                                  multiple
                                   style={{ display:"none" }}
                                   onChange={(e) => handleUpload(doc.id, e)} />
                               </label>
-                              {/* Upload fichier (desktop) */}
+                              {/* Upload fichier (desktop) — plusieurs fichiers */}
                               <label style={{
                                 display:"inline-flex", alignItems:"center", gap:5,
                                 background: S.surface, border:`1px solid ${S.border}`,
                                 borderRadius:8, padding:"6px 12px", cursor:"pointer",
                                 fontSize:12, color: S.textDim, fontFamily:"'Outfit',sans-serif"
                               }}>
-                                {L(labels.upload)}
+                                📎 {lang === "de" ? "Dateien" : lang === "it" ? "File" : lang === "en" ? "Files" : "Fichiers"}
                                 <input type="file" accept="image/*,application/pdf,.pdf"
+                                  multiple
                                   style={{ display:"none" }}
                                   onChange={(e) => handleUpload(doc.id, e)} />
                               </label>
                             </div>
                           )}
-                          {isDone && hasUpload && (
-                            <button onClick={() => { setUploads(u => ({...u, [doc.id]: null})); setChecked(c=>({...c,[doc.id]:false})); }}
-                              style={{ fontSize:10, color:S.muted, background:"none", border:"none", cursor:"pointer",
-                                       fontFamily:"'Outfit',sans-serif", padding:0 }}>
-                              ✕ Supprimer
-                            </button>
-                          )}
+                          {isDone && hasUpload && (() => {
+                            const pages = Array.isArray(uploads[doc.id]) ? uploads[doc.id].length : 1;
+                            return (
+                              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                                <span style={{ fontSize:11, color:S.gold, fontFamily:"'Outfit',sans-serif" }}>
+                                  ✅ {pages} page{pages > 1 ? "s" : ""} {lang==="de"?"hochgeladen":lang==="it"?"caricata/e":lang==="en"?"uploaded":"chargée(s)"}
+                                </span>
+                                {/* Bouton Ajouter d'autres pages */}
+                                <label style={{
+                                  fontSize:11, color:S.blue||"#60A5FA", fontFamily:"'Outfit',sans-serif",
+                                  cursor:"pointer", textDecoration:"underline"
+                                }}>
+                                  + {lang==="de"?"Weitere Seiten":lang==="it"?"Altre pagine":lang==="en"?"Add more pages":"Ajouter pages"}
+                                  <input type="file" accept="image/*,application/pdf,.pdf" multiple
+                                    style={{ display:"none" }}
+                                    onChange={(e) => handleUpload(doc.id, e)} />
+                                </label>
+                                <button onClick={() => { setUploads(u => ({...u, [doc.id]: null})); setChecked(c=>({...c,[doc.id]:false})); setOcrStatus(s=>({...s,[doc.id]:null})); }}
+                                  style={{ fontSize:10, color:S.muted, background:"none", border:"none", cursor:"pointer",
+                                           fontFamily:"'Outfit',sans-serif", padding:0 }}>
+                                  ✕ {lang==="de"?"Löschen":lang==="it"?"Elimina":lang==="en"?"Delete":"Supprimer"}
+                                </button>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
