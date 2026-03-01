@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Build: 2026-03-01 — FiscalAdvisor + SubsidyWinWin + WowEffects + PWA
+// Build: 2026-03-01-v2 — FiscalAdvisor + SubsidyWinWin + WowEffects + PWA
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
