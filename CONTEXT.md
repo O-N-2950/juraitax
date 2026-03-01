@@ -1,5 +1,5 @@
-# CONTEXT.md — tAIx v6.0
-**Dernière mise à jour : 1er mars 2026 — fin de session**
+# CONTEXT.md — tAIx v6.1
+**Dernière mise à jour : 1er mars 2026 — session UX B2B fix**
 
 ---
 
@@ -52,11 +52,11 @@
 
 | Fichier | Rôle | État |
 |---------|------|------|
-| `screens.jsx` | Écrans Welcome/Checklist/Form/Result | v9 — SubsidyWinWin + args marketing |
+| `screens.jsx` | Écrans Welcome/Checklist/Form/Result/B2B | **v10** — UX B2B fix: saisie client supprimée, OCR automatique |
 | `ChecklistDocs.jsx` | Upload documents + OCR | v3 — **multi-pages** (plusieurs photos/fichiers par doc) |
 | `FiscalAdvisor.js` | Cerveau IA questions fiscales | v2 — question subsides LAMal ajoutée |
 | `AdvisorScreen.jsx` | UI questions interactives | v1 — oui/non/montant/choix/nombre |
-| `SubsidyWinWin.jsx` | Détection subsides + 3a + WinWin | v1 — NOUVEAU cette session |
+| `SubsidyWinWin.jsx` | Détection subsides + 3a + WinWin | v1 |
 | `WowEffects.jsx` | Confetti, AnimatedAmount, CantonWatermark | v2 — SavingsBadge masqué B2B |
 | `PrintContribuable.js` | Impression A4 copie contribuable | v1 |
 | `RapportFiscal.js` | Rapport fiscal PDF | v1 |
@@ -82,18 +82,18 @@
 - FiscalAdvisor : conseiller IA temps réel, questions ciblées profil + documents, alertes changements vs N-1
 - 7 langues : fr, de, it, pt, es, en, uk
 
+### UX B2B — NOUVEAU v10 (1er mars 2026)
+- **Flux simplifié** : login fiduciaire → directement checklist (plus de saisie manuelle)
+- **Identification automatique** : nom, prénom, N° contribuable extraits par OCR depuis les documents du client
+- **Bandeau résultat enrichi** : affiche nom OCR + N° contribuable si extrait
+- **Reset automatique** du dossier à chaque nouveau client (fields: {} réinitialisé)
+- Info-box explicative sur la page B2B : "Uploadez directement les documents — tAIx extrait automatiquement"
+
 ### Subsides & Optimisation (SubsidyWinWin.jsx)
 - Détection automatique éligibilité subsides LAMal (RDU = revenu + 1/5 fortune)
 - Détection pilier 3a non maximisé + barre de progression % utilisé
 - Carte WinWin Finance Group (tel + email cliquables)
 - Bouton "Transférer ma demande" → email pré-rempli avec données contribuable
-- Message disclaimer FINMA
-
-### Marketing (Welcome screen)
-- ⏱️ "20 minutes, pas 3 heures" — comparaison vs site officiel
-- 🛡️ "L'erreur est humaine — pas avec tAIx" — mention jurisprudence + lois cantonales
-- Trust badges hébergement suisse, LPD, FINMA
-- SavingsBadge masqué en mode B2B fiduciaire
 
 ### B2B
 - Mode fiduciaire (contact@winwin.swiss = accès illimité gratuit)
@@ -103,7 +103,6 @@
 ### PWA (Progressive Web App)
 - manifest.json + icon-192.png + icon-512.png
 - Installation iPhone : Safari → Partager → "Sur l'écran d'accueil"
-- Plein écran sans barre Safari
 
 ---
 
@@ -119,7 +118,6 @@ enfant_montant: 97          // CHF/mois
 ```
 
 Calcul RDU = revenu imposable + fortune/5
-Si éligible ET ne bénéficie pas encore → afficher bloc WinWin
 
 ---
 
@@ -127,20 +125,14 @@ Si éligible ET ne bénéficie pas encore → afficher bloc WinWin
 
 - **Repo** : https://github.com/O-N-2950/soluris
 - **Architecture** : FastAPI + PostgreSQL pgvector + Cohere embeddings 1024dim
-- **Données** : 15 codes Fedlex + 175k+ décisions jurisprudence
-- **Session Soluris faite** : prompt envoyé pour ajouter 26 lois cantonales fiscales + LIFD + LHID + OPP3 + circulaires AFC
-- **À faire** : endpoint POST /api/fiscal-query (sans auth, clé interne TAIX_INTERNAL_KEY)
+- **À faire** : endpoint POST /api/fiscal-query
 - **Objectif** : tAIx cite "Art. 82 LPP · ATF 148 II 121 · Circ. AFC n°18" sous chaque déduction
 
 ---
 
 ## 📅 MOUTIER 2027
-
-- 1er jan 2026 : Moutier officiellement Canton Jura
-- DI 2025 : encore bernoise (délai 15 mars 2026)
-- **Première DI jurassienne** : année 2026, déposée en 2027
-- Plan : prix CHF 39, code promo MOUTIER2027, landing taix.ch/moutier, contact administration@moutier.ch
-- **Ne rien faire avant janvier 2027**
+- Ne rien faire avant janvier 2027
+- Prix CHF 39, code promo MOUTIER2027
 
 ---
 
@@ -150,7 +142,6 @@ Si éligible ET ne bénéficie pas encore → afficher bloc WinWin
 |-------|------|------|
 | Particulier lancement | CHF 29 | 100 premiers |
 | Particulier standard | CHF 49 | après lancement |
-| Prolongation | CHF 9 | accès N+1 |
 | B2B Solo | CHF 490 | 20 DI |
 | B2B Cabinet | CHF 990 | 60 DI |
 | B2B Illimité | CHF 1'990 | quota illimité |
