@@ -4,7 +4,8 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { useState, useRef } from "react";
-import { useStore } from "./store";
+import { useStore, SOURCE } from "./store";
+import { ocrDocument, applyOCRToStore } from "./ocr";
 import { GlobalStyles, T as S } from "./ui";
 import { LangSelector } from "./LangSelector";
 import { useT } from "./i18n";
@@ -69,6 +70,7 @@ export function ChecklistScreen() {
   const [checked, setChecked] = useState({});
   const [uploads, setUploads] = useState({});
   const [expanded, setExpanded] = useState({ identity: true, revenus: true, deductions: false, fortune: false });
+  const [ocrStatus, setOcrStatus] = useState({}); // { docId: 'loading'|'done'|'error' }
   const fileRefs = useRef({});
 
   const docs = DOCS(t);
@@ -81,11 +83,27 @@ export function ChecklistScreen() {
   const progress = Math.round(((checkedCount + uploadCount) / (totalDocs * 2)) * 100);
   const canProceed = allRequired.every(d => checked[d.id] || uploads[d.id]);
 
-  function handleUpload(docId, e) {
+  const { importFromDoc } = useStore();
+
+  async function handleUpload(docId, e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploads(u => ({ ...u, [docId]: file }));
     setChecked(c => ({ ...c, [docId]: true }));
+    
+    // Lancer OCR automatiquement
+    setOcrStatus(s => ({ ...s, [docId]: "loading" }));
+    try {
+      const result = await ocrDocument(file, docId);
+      if (!result._error) {
+        applyOCRToStore(result, importFromDoc, null, SOURCE);
+        setOcrStatus(s => ({ ...s, [docId]: "done" }));
+      } else {
+        setOcrStatus(s => ({ ...s, [docId]: "error" }));
+      }
+    } catch {
+      setOcrStatus(s => ({ ...s, [docId]: "error" }));
+    }
   }
 
   function toggleCheck(docId) {
@@ -243,6 +261,20 @@ export function ChecklistScreen() {
                                              color: S.green, borderRadius:99, padding:"1px 7px",
                                              fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
                                 ✓ {uploads[doc.id].name?.substring(0,20)}
+                              </span>
+                            )}
+                            {ocrStatus[doc.id] === "loading" && (
+                              <span style={{ fontSize:9, background:"rgba(201,168,76,0.1)", border:"1px solid rgba(201,168,76,0.3)",
+                                             color:"#C9A84C", borderRadius:99, padding:"1px 7px",
+                                             fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                                ⏳ IA lit le document…
+                              </span>
+                            )}
+                            {ocrStatus[doc.id] === "done" && (
+                              <span style={{ fontSize:9, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.25)",
+                                             color:"#34D399", borderRadius:99, padding:"1px 7px",
+                                             fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                                ✨ Données extraites
                               </span>
                             )}
                           </div>
