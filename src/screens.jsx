@@ -8,6 +8,7 @@ import LangSelector from "./LangSelector";
 import { genererRapportFiscal } from "./RapportFiscal.js";
 import { genererJustificatifs } from "./JustificatifsPDF.js";
 import { TrustBanner, TrustBlock, TrustFooter } from "./TrustBadges";
+import { DepotDeclaration } from "./DepotDeclaration";
 
 // ═══════════════════════════════════════════════
 //  ÉCRAN WELCOME
@@ -611,6 +612,7 @@ export function Result() {
           </Btn>
         </div>
 
+        <DepotDeclaration canton={cantonConfig?.canton || "JU"} lang={lang} />
         <TrustFooter lang={lang} />
       </div>
     </div>
