@@ -9,7 +9,7 @@ import { ocrDocument, applyOCRToStore } from "./ocr";
 import { genererQuestionsIA } from "./FiscalAdvisor";
 import { AdvisorScreen } from "./AdvisorScreen";
 import { GlobalStyles, T as S } from "./ui";
-import { LangSelector } from "./LangSelector";
+import LangSelector from "./LangSelector";
 import { useT } from "./i18n";
 
 // ── LISTE COMPLÈTE DES DOCUMENTS ──────────────────────────────────────
@@ -352,7 +352,8 @@ export function ChecklistScreen() {
               if (Object.keys(allOcrResults).length > 0 && !advisorData) {
                 setAdvisorLoading(true);
                 try {
-                  const advice = await genererQuestionsIA(allOcrResults, useStore.getState().getAll(), lang);
+                  const storeSnap = useStore.getState(); const allData = storeSnap?.getAll ? storeSnap.getAll() : {};
+                  const advice = await genererQuestionsIA(allOcrResults, allData, lang);
                   setAdvisorData(advice);
                   if (advice?.questions?.length > 0) { setAdvisorLoading(false); setShowAdvisor(true); return; }
                 } catch(e) { console.warn("Advisor error:", e); }

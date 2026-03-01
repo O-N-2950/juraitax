@@ -221,7 +221,7 @@ export function genererJustificatifs({ data, result, uploads = {}, lang = "fr", 
       doc.setFont("helvetica", row.bold ? "bold" : "normal");
       doc.setTextColor(row.bold ? 26 : 80, row.bold ? 26 : 80, row.bold ? 46 : 80);
       doc.text(row.l, M + 5, y + 5.5);
-      doc.setTextColor(row.bold ? ...GOLD : ...DARK);
+      if (row.bold) { doc.setTextColor(...GOLD); } else { doc.setTextColor(...DARK); }
       doc.text(fCHF(row.v), W - M - 3, y + 5.5, { align: "right" });
       y += rh;
     });
