@@ -7,6 +7,7 @@ import { useT } from "./i18n";
 import LangSelector from "./LangSelector";
 import { genererRapportFiscal } from "./RapportFiscal.js";
 import { genererJustificatifs } from "./JustificatifsPDF.js";
+import { TrustBanner, TrustBlock, TrustFooter } from "./TrustBadges";
 
 // ═══════════════════════════════════════════════
 //  ÉCRAN WELCOME
@@ -99,6 +100,9 @@ export function Welcome() {
             <span style={{color:S.gold}}>Français · Deutsch · Italiano · Português · Español · English</span>
           </div>
         </div>
+
+        {/* Trust — Hébergement Suisse */}
+        <div className="fu3" style={{ marginBottom:10 }}><TrustBanner lang={lang} /></div>
 
         {/* CTA */}
         <div className="fu3">
@@ -463,6 +467,7 @@ export function Paywall() {
           <div style={{ textAlign:"center", marginTop:10, fontSize:10, color:S.muted, fontFamily:"'Outfit',sans-serif" }}>
             Paiement sécurisé par Stripe · Twint accepté
           </div>
+          <TrustBlock lang={lang} />
         </div>
       </div>
     </div>
@@ -606,10 +611,7 @@ export function Result() {
           </Btn>
         </div>
 
-        <p style={{ marginTop:24, fontSize:9, color:S.muted, textAlign:"center", lineHeight:1.6, fontFamily:"'Outfit',sans-serif" }}>
-          Édité par {APP.editor} · Partenaire: {APP.partner}, {APP.partnerFinma} ·
-          Les calculs sont basés sur les informations fournies et les barèmes 2025. La décision de taxation de l'autorité fiscale fait foi.
-        </p>
+        <TrustFooter lang={lang} />
       </div>
     </div>
   );
@@ -777,6 +779,7 @@ export function SubscriptionOffer() {
           style={{ width:"100%", background:"none", border:"none", cursor:"pointer", color:S.muted, fontSize:12, fontFamily:"'Outfit',sans-serif", padding:"8px", lineHeight:1.4 }}>
           {L(labels.skip)}
         </button>
+        <TrustFooter lang={lang} />
 
       </div>
     </div>
