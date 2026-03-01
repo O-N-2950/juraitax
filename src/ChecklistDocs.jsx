@@ -123,6 +123,7 @@ export function ChecklistScreen() {
   const [ocrStatus, setOcrStatus]     = useState({});
   const [ocrResults, setOcrResults]   = useState({});
   const [analyzing, setAnalyzing]     = useState(false);
+  const [analyzeError, setAnalyzeError] = useState(null);
   const [progress, setProgress]       = useState({ done:0, total:0, label:"" });
   // ── B2B fallback ──────────────────────────────────────────────────
   const [showIdFallback, setShowIdFallback] = useState(false);
@@ -191,6 +192,28 @@ export function ChecklistScreen() {
   function removePending(id) { setPending(p => p.filter(x => x.id !== id)); }
   function clearPending()    { setPending([]); }
 
+  // ── Compression image avant OCR (réduit 5MB → ~300KB) ────────────
+  function compressImage(file, maxDim = 1800, quality = 0.82) {
+    return new Promise((resolve) => {
+      if (file.type === "application/pdf") { resolve(file); return; }
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width: w, height: h } = img;
+        if (w <= maxDim && h <= maxDim) { resolve(file); return; }
+        const scale = maxDim / Math.max(w, h);
+        w = Math.round(w * scale); h = Math.round(h * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob || file), "image/jpeg", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // PHASE 2 — ANALYSE (bouton CTA uniquement)
   // ═══════════════════════════════════════════════════════════════════
@@ -210,61 +233,73 @@ export function ChecklistScreen() {
     if (!pending.length && analyzedCount > 0)   { await launchAdvisor(ocrResults); return; }
 
     setAnalyzing(true);
+    setAnalyzeError(null);
 
-    // Grouper par docId
-    const groups = {};
-    for (const item of pending) {
-      if (!groups[item.docId]) groups[item.docId] = [];
-      groups[item.docId].push(item.file);
-    }
-
-    // Passer pending → analyzed
-    setAnalyzed(a => {
-      const next = { ...a };
-      for (const [docId, files] of Object.entries(groups)) {
-        next[docId] = [...(next[docId]||[]), ...files];
-      }
-      return next;
-    });
-    setPending([]);
-
-    // OCR séquentiel
-    const entries = Object.entries(groups);
-    let done = 0;
-    const newResults = {};
-
-    for (const [docId, files] of entries) {
-      setProgress({ done, total: entries.length, label: files[0]?.name?.substring(0,28) || docId });
-      setOcrStatus(s => ({ ...s, [docId]: "running" }));
-
-      let merged = {};
-      for (const file of files) {
-        try {
-          const res = await ocrDocument(file, docId);
-          if (!res._error) merged = mergeOcr(merged, res);
-        } catch {}
+    try {
+      // Grouper par docId
+      const groups = {};
+      for (const item of pending) {
+        if (!groups[item.docId]) groups[item.docId] = [];
+        groups[item.docId].push(item.file);
       }
 
-      if (Object.keys(merged).length > 0) {
-        applyOCRToStore(merged, importFromDoc, null, SOURCE);
-        setOcrStatus(s => ({ ...s, [docId]: "done" }));
-        setOcrResults(r => ({ ...r, [docId]: merged }));
-        newResults[docId] = merged;
-      } else {
-        setOcrStatus(s => ({ ...s, [docId]: "error" }));
+      // Passer pending → analyzed
+      setAnalyzed(a => {
+        const next = { ...a };
+        for (const [docId, files] of Object.entries(groups)) {
+          next[docId] = [...(next[docId]||[]), ...files];
+        }
+        return next;
+      });
+      setPending([]);
+
+      // OCR séquentiel avec compression
+      const entries  = Object.entries(groups);
+      // Compter le nombre total de fichiers (pas de groupes)
+      const totalFiles = entries.reduce((s, [, fs]) => s + fs.length, 0);
+      let doneFiles = 0;
+      const newResults = {};
+
+      for (const [docId, files] of entries) {
+        setOcrStatus(s => ({ ...s, [docId]: "running" }));
+
+        let merged = {};
+        for (const file of files) {
+          doneFiles++;
+          setProgress({ done: doneFiles, total: totalFiles, label: file.name?.substring(0,24) || docId });
+          try {
+            const compressed = await compressImage(file);
+            const res = await ocrDocument(compressed, docId);
+            if (!res._error) merged = mergeOcr(merged, res);
+          } catch (e) {
+            console.warn("OCR file error:", e);
+          }
+        }
+
+        if (Object.keys(merged).length > 0) {
+          applyOCRToStore(merged, importFromDoc, null, SOURCE);
+          setOcrStatus(s => ({ ...s, [docId]: "done" }));
+          setOcrResults(r => ({ ...r, [docId]: merged }));
+          newResults[docId] = merged;
+        } else {
+          setOcrStatus(s => ({ ...s, [docId]: "error" }));
+        }
       }
-      done++;
-      setProgress({ done, total: entries.length, label: "" });
+
+      setAnalyzing(false);
+
+      if (isB2B) {
+        const data = useStore.getState().getAll?.() || {};
+        if (!data.nom && !data.prenom) setShowIdFallback(true);
+      }
+
+      await launchAdvisor({ ...ocrResults, ...newResults });
+
+    } catch (err) {
+      console.error("analyzeAll crash:", err);
+      setAnalyzing(false);
+      setAnalyzeError("Une erreur est survenue. Vos photos sont conservées — réessayez.");
     }
-
-    setAnalyzing(false);
-
-    if (isB2B) {
-      const data = useStore.getState().getAll?.() || {};
-      if (!data.nom && !data.prenom) setShowIdFallback(true);
-    }
-
-    await launchAdvisor({ ...ocrResults, ...newResults });
   }
 
   async function launchAdvisor(results) {
@@ -295,12 +330,12 @@ export function ChecklistScreen() {
 
   // ── Labels CTA ────────────────────────────────────────────────────
   const ctaLabel = () => {
-    if (analyzing)      return `⏳ ${progress.done}/${progress.total} — ${progress.label || "Analyse…"}`;
+    if (analyzing)      return `⏳ Photo ${progress.done}/${progress.total} — ${progress.label || "…"}`;
     if (advisorLoading) return "🧠 L'expert fiscal analyse votre dossier…";
     if (pendingCount > 0)
-      return `▶ ${L({fr:"Analyser",de:"Analysieren",en:"Analyse"})} — ${pendingCount} ${L({fr:"photo(s) en attente",de:"Foto(s) bereit",en:"photo(s) ready"})}`;
+      return `▶ Analyser ${pendingCount} photo${pendingCount>1?"s":""}`;
     if (analyzedCount > 0)
-      return `▶ ${L({fr:"Continuer",de:"Weiter",en:"Continue"})} (${ocrDoneCount} ${L({fr:"analysé(s)",de:"analysiert",en:"analysed"})})`;
+      return `▶ Continuer (${ocrDoneCount} analysé${ocrDoneCount>1?"s":""})`;
     return L({ fr:"Continuer sans documents", de:"Ohne Dokumente weiter", en:"Continue without documents" });
   };
 
@@ -602,6 +637,13 @@ export function ChecklistScreen() {
         background:`linear-gradient(transparent,${S.bg} 30%)`,
         padding:`20px 20px calc(28px + env(safe-area-inset-bottom, 0px))` }}>
         <div style={{ maxWidth:680, margin:"0 auto" }}>
+          {analyzeError && (
+            <div style={{ marginBottom:10, padding:"12px 16px", borderRadius:10,
+              background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.3)",
+              color:S.red, fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"center" }}>
+              ⚠️ {analyzeError}
+            </div>
+          )}
           <button onClick={analyzeAll}
             disabled={analyzing || advisorLoading}
             style={{ width:"100%", padding:"18px 24px", minHeight:56,
