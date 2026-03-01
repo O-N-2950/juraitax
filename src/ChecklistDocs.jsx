@@ -18,7 +18,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useStore, SOURCE } from "./store";
-import { ocrDocument, applyOCRToStore } from "./ocr";
+import { ocrDocument, fusionnerOCR, applyOCRToStore } from "./ocr";
 import { genererQuestionsIA } from "./FiscalAdvisor";
 import { AdvisorScreen } from "./AdvisorScreen";
 import { GlobalStyles, T as S } from "./ui";
@@ -222,18 +222,8 @@ export function ChecklistScreen() {
 
   // ═══════════════════════════════════════════════════════════════════
   // PHASE 2 — ANALYSE (bouton CTA uniquement)
+  // Claude identifie lui-même chaque document — aucune classification
   // ═══════════════════════════════════════════════════════════════════
-  function mergeOcr(base, next) {
-    const m = { ...base };
-    const ADD = new Set(["solde_31dec","frais_medicaux","dons","frais_garde","montant_ttc"]);
-    for (const [k, v] of Object.entries(next)) {
-      if (v === null || v === "" || v === 0 || k.startsWith("_")) continue;
-      if (ADD.has(k) && typeof v === "number" && typeof m[k] === "number") m[k] += v;
-      else if (m[k] == null) m[k] = v;
-    }
-    return m;
-  }
-
   async function analyzeAll() {
     if (!pending.length && analyzedCount === 0) { setScreen("form"); return; }
     if (!pending.length && analyzedCount > 0)   { await launchAdvisor(ocrResults); return; }
@@ -242,56 +232,37 @@ export function ChecklistScreen() {
     setAnalyzeError(null);
 
     try {
-      // Grouper par docId
-      const groups = {};
-      for (const item of pending) {
-        if (!groups[item.docId]) groups[item.docId] = [];
-        groups[item.docId].push(item.file);
-      }
-
-      // Passer pending → analyzed
-      setAnalyzed(a => {
-        const next = { ...a };
-        for (const [docId, files] of Object.entries(groups)) {
-          next[docId] = [...(next[docId]||[]), ...files];
-        }
-        return next;
-      });
+      const files = pending.map(item => item.file);
       setPending([]);
 
-      // OCR séquentiel avec compression
-      const entries  = Object.entries(groups);
-      // Compter le nombre total de fichiers (pas de groupes)
-      const totalFiles = entries.reduce((s, [, fs]) => s + fs.length, 0);
-      let doneFiles = 0;
-      const newResults = {};
-
-      for (const [docId, files] of entries) {
-        setOcrStatus(s => ({ ...s, [docId]: "running" }));
-
-        let merged = {};
-        for (const file of files) {
-          doneFiles++;
-          setProgress({ done: doneFiles, total: totalFiles, label: file.name?.substring(0,24) || docId });
-          try {
-            // Photo déjà compressée à l'ajout — OCR direct
-            const res = await ocrDocument(file, docId);
-            if (!res._error) merged = mergeOcr(merged, res);
-          } catch (e) {
-            console.warn("OCR file error:", e);
-          }
-        }
-
-        if (Object.keys(merged).length > 0) {
-          applyOCRToStore(merged, importFromDoc, null, SOURCE);
-          setOcrStatus(s => ({ ...s, [docId]: "done" }));
-          setOcrResults(r => ({ ...r, [docId]: merged }));
-          newResults[docId] = merged;
-        } else {
-          setOcrStatus(s => ({ ...s, [docId]: "error" }));
+      // OCR séquentiel — Claude lit et identifie chaque document lui-même
+      const resultats = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setProgress({ done: i + 1, total: files.length, label: file.name?.substring(0, 24) || `Photo ${i+1}` });
+        try {
+          const res = await ocrDocument(file);
+          if (!res._error) resultats.push(res);
+        } catch (e) {
+          console.warn("OCR file error:", e);
         }
       }
 
+      // Fusionner tous les résultats intelligemment
+      const fusion = fusionnerOCR(resultats);
+
+      // Appliquer au store
+      applyOCRToStore(fusion, importFromDoc);
+
+      // Marquer comme analysé
+      const typesCounts = {};
+      for (const r of resultats) {
+        const t = r._type || "autre";
+        typesCounts[t] = (typesCounts[t] || 0) + 1;
+      }
+      setOcrStatus({ _done: true, ...typesCounts });
+      const newResults = { _fusion: fusion, _all: resultats };
+      setOcrResults(newResults);
       setAnalyzing(false);
 
       if (isB2B) {
@@ -299,7 +270,7 @@ export function ChecklistScreen() {
         if (!data.nom && !data.prenom) setShowIdFallback(true);
       }
 
-      await launchAdvisor({ ...ocrResults, ...newResults });
+      await launchAdvisor(newResults);
 
     } catch (err) {
       console.error("analyzeAll crash:", err);

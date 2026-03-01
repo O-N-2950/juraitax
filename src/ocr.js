@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  JurAI Tax / tAIx — OCR Service
-//  Lit les documents fiscaux suisses via Claude claude-sonnet-4-6 Vision
+//  tAIx — OCR Service v2
+//  UN SEUL prompt universel — Claude identifie et extrait tout lui-même
+//  Fonctionne pour tous cantons, tous types de documents, toutes situations
 //  Mars 2026 — PEP's Swiss SA
 // ═══════════════════════════════════════════════════════════════════════
 
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
-// ── Convertit un File en base64 ──────────────────────────────────────
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -16,12 +16,26 @@ async function fileToBase64(file) {
   });
 }
 
-// ── Prompt par type de document ─────────────────────────────────────
-const PROMPTS = {
-  di_prev: `Tu es un expert fiscal suisse. Analyse cette déclaration d'impôt suisse.
-Extrais UNIQUEMENT les informations d'identité (pas les montants fiscaux qui seront recalculés).
-Réponds en JSON strict:
+// ── PROMPT UNIVERSEL ─────────────────────────────────────────────────
+const PROMPT_UNIVERSEL = `Tu es un expert fiscal suisse avec 30 ans d'expérience dans tous les cantons.
+Analyse ce document fiscal suisse. Tu ne connais pas à l'avance son type.
+
+ÉTAPE 1 — Identifie le document parmi :
+certificat de salaire, déclaration d'impôt (DI), extrait bancaire, attestation AVS/AI,
+attestation LPP/rente, attestation pilier 3a, rachat caisse de pension, facture médicale,
+facture entretien immeuble, valeur fiscale immeuble, décompte hypothèque, reçu de don,
+facture garde enfants, décompte chômage, document identité/permis, autre document fiscal.
+
+ÉTAPE 2 — Extrais TOUTES les informations fiscalement pertinentes présentes.
+
+Réponds UNIQUEMENT en JSON strict. N'inclus QUE les champs réellement lisibles dans le document :
+
 {
+  "_type": "cert_sal|di_prev|extrait_bancaire|avs_ai|lpp_rente|attestation_3a|rachat_lpp|facture_med|entretien|valeur_fiscale|hypotheque|don|garde|chomage|identite|autre",
+  "_canton": "JU|NE|FR|VD|VS|GE|TI|ZH|BE|AG|SH|SG|LU|UR|SZ|OW|NW|GL|ZG|SO|BL|BS|AR|AI|GR|TG",
+  "_annee": 2025,
+  "_confiance": "haute|moyenne|faible",
+
   "prenom": "",
   "nom": "",
   "naissance": "YYYY-MM-DD",
@@ -30,201 +44,91 @@ Réponds en JSON strict:
   "no_contribuable": "",
   "etat_civil": "celibataire|marie|divorce|veuf|partenariat",
   "confession": "catholique|reformee|autre|aucune",
-  "enfants": 0
-}
-Si une information est illisible ou absente, laisse la valeur vide. JSON uniquement, aucun autre texte.`,
+  "nb_enfants": 0,
 
-  cert_sal: `Tu es un expert fiscal suisse. Analyse ce certificat de salaire suisse (formulaire officiel).
-Réponds en JSON strict:
-{
-  "rev_salaire": 0,
+  "rev_salaire_net": 0,
   "rev_salaire_brut": 0,
+  "rev_avs": 0,
+  "rev_ai": 0,
+  "rev_lpp_rente": 0,
+  "rev_chomage": 0,
+  "rev_independant": 0,
+  "valeur_locative": 0,
+  "rev_titres_dividendes": 0,
+
   "cotisations_avs": 0,
   "cotisations_lpp": 0,
   "cotisations_ac": 0,
-  "frais_prof_effectifs": 0,
-  "frais_prof_forfait": 0,
-  "employeur": "",
-  "annee": 0,
-  "indemnite_repas": 0,
-  "remboursement_frais": 0
-}
-Champs numériques = montant CHF (entier). JSON uniquement.`,
+  "primes_assurance_maladie": 0,
+  "primes_assurance_vie": 0,
 
-  "3a": `Tu es un expert fiscal suisse. Analyse cette attestation pilier 3a.
-Réponds en JSON strict:
-{
   "montant_3a": 0,
-  "institution": "",
-  "annee": 0,
-  "type": "banque|assurance",
-  "titulaire": ""
-}
-JSON uniquement.`,
-
-  rachat_lpp: `Tu es un expert fiscal suisse. Analyse ce document de rachat LPP / caisse de pension.
-Réponds en JSON strict:
-{
+  "institution_3a": "",
   "montant_rachat_lpp": 0,
   "caisse_pension": "",
-  "annee": 0,
-  "type_document": "rachat|attestation_solde|rente"
-}
-JSON uniquement.`,
 
-  comptes: `Tu es un expert fiscal suisse. Analyse cet extrait de compte bancaire.
-Extrais le solde au 31 décembre.
-Réponds en JSON strict:
-{
   "solde_31dec": 0,
   "banque": "",
-  "type_compte": "courant|epargne|titres|3a",
+  "type_compte": "courant|epargne|titres|3a|autre",
   "iban": "",
-  "annee": 0,
-  "devise": "CHF"
-}
-JSON uniquement.`,
+  "valeur_titres": 0,
 
-  hypotheque: `Tu es un expert fiscal suisse. Analyse ce décompte d'intérêts hypothécaires.
-Réponds en JSON strict:
-{
   "interets_hypothecaires": 0,
   "solde_hypotheque": 0,
-  "banque": "",
-  "annee": 0,
-  "taux": 0,
-  "type": "fixe|variable|libor_saron"
-}
-JSON uniquement.`,
-
-  immobilier: `Tu es un expert fiscal suisse. Analyse ce document immobilier (valeur fiscale / estimation officielle).
-Réponds en JSON strict:
-{
   "valeur_fiscale": 0,
-  "valeur_locative": 0,
-  "commune_bien": "",
-  "type_bien": "villa|appartement|terrain|immeuble_locatif",
-  "adresse_bien": ""
-}
-JSON uniquement.`,
+  "adresse_bien": "",
 
-  entretien: `Tu es un expert fiscal suisse. Analyse cette facture de travaux d'entretien d'immeuble.
-Réponds en JSON strict:
-{
-  "montant_ttc": 0,
-  "montant_ht": 0,
-  "prestataire": "",
-  "date": "",
-  "description_travaux": "",
-  "type": "entretien|renovation_valeur_ajoutee",
-  "deductible_fiscal": true
-}
-Pour le champ deductible_fiscal: true si c'est de l'entretien courant, false si c'est de la rénovation augmentant la valeur.
-JSON uniquement.`,
-
-  medicaux: `Tu es un expert fiscal suisse. Analyse cette facture médicale / note d'honoraires.
-Réponds en JSON strict:
-{
-  "montant_facture": 0,
+  "frais_medicaux_brut": 0,
   "rembourse_assurance": 0,
-  "montant_net_non_rembourse": 0,
-  "prestateur": "",
-  "date": "",
-  "type_soin": ""
-}
-JSON uniquement.`,
+  "frais_medicaux_net": 0,
 
-  garde: `Tu es un expert fiscal suisse. Analyse cette facture de garde d'enfants (crèche/garderie).
-Réponds en JSON strict:
-{
-  "montant_annuel": 0,
-  "institution": "",
-  "annee": 0,
-  "nb_enfants": 0
-}
-JSON uniquement.`,
-
-  dons: `Tu es un expert fiscal suisse. Analyse ce reçu de don.
-Réponds en JSON strict:
-{
   "montant_don": 0,
-  "organisation": "",
-  "date": "",
-  "exoneration_fiscale": true,
-  "numero_don": ""
-}
-JSON uniquement.`,
+  "organisation_don": "",
 
-  leasing: `Tu es un expert fiscal suisse. Analyse ce contrat/décompte de leasing.
-Réponds en JSON strict:
-{
-  "solde_restant_du": 0,
-  "loyer_mensuel": 0,
-  "societe_leasing": "",
-  "objet": "",
-  "date_fin": ""
-}
-JSON uniquement.`,
-
-  // Générique pour tout autre document — extrait tous les champs possibles
-  default: `Tu es un expert fiscal suisse. Analyse ce document fiscal suisse.
-Identifie le type de document et extrais toutes les informations pertinentes.
-Réponds en JSON strict avec les champs trouvés parmi ceux-ci:
-{
-  "type_document": "di_prev|cert_sal|extrait_bancaire|facture|attestation|autre",
-  "prenom": "",
-  "nom": "",
-  "naissance": "YYYY-MM-DD",
-  "no_contribuable": "",
-  "etat_civil": "celibataire|marie|divorce|veuf",
-  "commune": "",
-  "enfants": 0,
-  "rev_salaire": 0,
-  "rev_avs": 0,
-  "rev_lpp_rente": 0,
-  "cotisations_lpp": 0,
-  "montant_3a": 0,
-  "montant_rachat_lpp": 0,
-  "solde_31dec": 0,
-  "banque": "",
-  "interets_hypothecaires": 0,
-  "valeur_fiscale": 0,
+  "frais_garde": 0,
   "montant_ttc": 0,
-  "montant_net_non_rembourse": 0,
-  "montant_don": 0,
-  "montant_annuel": 0
+  "type_travaux": "entretien|valeur_ajoutee",
+  "deductible_fiscal": true,
+
+  "frais_prof_effectifs": 0,
+  "km_trajet": 0,
+  "employeur": "",
+  "taux_activite": 0,
+  "dettes": 0,
+  "leasing_solde": 0
 }
-Inclure UNIQUEMENT les champs trouvés dans le document (ne pas inventer). JSON uniquement, aucun autre texte.`,
-};
+
+RÈGLES :
+- N'inclus QUE les champs présents et lisibles
+- Montants en CHF entier (pas de décimales)
+- _confiance = "faible" si document flou ou partiel
+- JSON uniquement, aucun texte avant ou après`;
 
 // ── OCR principal ────────────────────────────────────────────────────
-export async function ocrDocument(file, docType = "default") {
+export async function ocrDocument(file) {
   if (!ANTHROPIC_API_KEY) {
-    console.warn("VITE_ANTHROPIC_API_KEY manquante — OCR désactivé");
-    return { _error: "API key manquante", _docType: docType };
+    return { _error: "API key manquante", _type: "autre" };
   }
 
-  const isPDF = file.type === "application/pdf";
+  const isPDF     = file.type === "application/pdf";
   const mediaType = isPDF ? "application/pdf" : (file.type || "image/jpeg");
-  const base64 = await fileToBase64(file);
-  const prompt = PROMPTS[docType] || PROMPTS.default;
+  const base64    = await fileToBase64(file);
 
   const body = {
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: 1500,
     messages: [{
       role: "user",
       content: [
         isPDF
           ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
           : { type: "image",    source: { type: "base64", media_type: mediaType, data: base64 } },
-        { type: "text", text: prompt }
+        { type: "text", text: PROMPT_UNIVERSEL }
       ]
     }]
   };
 
   try {
-    // Appel via le proxy Express (/api/anthropic) pour éviter le blocage CORS browser
     const res = await fetch("/api/anthropic", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -232,97 +136,107 @@ export async function ocrDocument(file, docType = "default") {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error("Claude API error:", err);
-      return { _error: err, _docType: docType };
+      return { _error: await res.text(), _type: "autre" };
     }
 
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "{}";
-
-    // Parse JSON — strip markdown fences if present
-    const clean = text.replace(/```json\n?|\n?```/g, "").trim();
+    const data   = await res.json();
+    const text   = data.content?.[0]?.text || "{}";
+    const clean  = text.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(clean);
-    return { ...parsed, _docType: docType, _filename: file.name };
+    return { ...parsed, _filename: file.name };
 
   } catch (err) {
     console.error("OCR error:", err);
-    return { _error: String(err), _docType: docType };
+    return { _error: String(err), _type: "autre" };
   }
+}
+
+// ── Fusion intelligente de plusieurs résultats OCR ───────────────────
+const ADDITIFS = new Set([
+  "solde_31dec","valeur_titres","frais_medicaux_brut","frais_medicaux_net",
+  "rembourse_assurance","montant_don","frais_garde","montant_ttc",
+  "interets_hypothecaires","rev_titres_dividendes","cotisations_avs",
+  "cotisations_ac","primes_assurance_maladie",
+]);
+
+const IDENTITE = new Set([
+  "prenom","nom","naissance","adresse","commune","no_contribuable",
+  "etat_civil","confession","nb_enfants","employeur","taux_activite",
+]);
+
+export function fusionnerOCR(resultats) {
+  const fusion = {};
+  for (const r of resultats) {
+    if (!r || r._error) continue;
+    for (const [k, v] of Object.entries(r)) {
+      if (k.startsWith("_") || v === null || v === "" || v === undefined) continue;
+      if (typeof v === "number" && v === 0) continue;
+      if (ADDITIFS.has(k) && typeof v === "number") {
+        fusion[k] = (fusion[k] || 0) + v;
+      } else if (IDENTITE.has(k)) {
+        if (!fusion[k]) fusion[k] = v;
+      } else {
+        if (!fusion[k]) fusion[k] = v;
+      }
+    }
+  }
+  return fusion;
 }
 
 // ── Applique les données OCR au store ───────────────────────────────
-// Mapping OCR fields → store fields
 const FIELD_MAP = {
-  // Identité (di_prev)
-  prenom:              "prenom",
-  nom:                 "nom",
-  naissance:           "naissance",
-  adresse:             "adresse",
-  commune:             "commune",
-  no_contribuable:     "no_contribuable",
-  etat_civil:          "etat_civil",
-  confession:          "confession",
-  enfants:             "enfants",
-
-  // Revenus (cert_sal)
-  rev_salaire:         "rev_salaire",
-  cotisations_lpp:     "cotisations_lpp",
-
-  // Rentes retraite
-  rev_avs:             "rev_avs",
-  rev_lpp_rente:       "rev_lpp_rente",
-
-  // Déductions
-  montant_3a:          "pilier_3a",
-  montant_rachat_lpp:  "rachat_lpp",
-  montant_annuel:      "frais_garde",  // garde enfants
-  montant_don:         "dons",
-  montant_net_non_rembourse: "frais_medicaux",
-
-  // Fortune / Immobilier
-  solde_31dec:         "solde_bancaire",
+  prenom:               "prenom",
+  nom:                  "nom",
+  naissance:            "naissance",
+  adresse:              "adresse",
+  commune:              "commune",
+  no_contribuable:      "no_contribuable",
+  etat_civil:           "etat_civil",
+  confession:           "confession",
+  nb_enfants:           "nb_enfants",
+  taux_activite:        "taux_activite",
+  employeur:            "employeur",
+  rev_salaire_net:      "rev_salaire",
+  rev_salaire_brut:     "rev_salaire_brut",
+  rev_avs:              "rev_avs",
+  rev_ai:               "rev_ai",
+  rev_lpp_rente:        "rev_lpp_rente",
+  rev_chomage:          "rev_chomage",
+  rev_independant:      "rev_independant",
+  valeur_locative:      "valeur_locative",
+  rev_titres_dividendes:"rev_titres",
+  cotisations_avs:      "cotisations_avs",
+  cotisations_lpp:      "cotisations_lpp",
+  cotisations_ac:       "cotisations_ac",
+  primes_assurance_maladie: "primes_maladie",
+  primes_assurance_vie: "primes_vie",
+  montant_3a:           "pilier_3a",
+  institution_3a:       "institution_3a",
+  montant_rachat_lpp:   "rachat_lpp",
+  caisse_pension:       "caisse_pension",
+  solde_31dec:          "solde_bancaire",
+  banque:               "banque",
+  valeur_titres:        "valeur_titres",
   interets_hypothecaires: "interets_hypothecaires",
-  solde_hypotheque:    "for_hypotheque",
-  valeur_fiscale:      "for_immobilier",
-  valeur_locative:     "valeur_locative",
-  solde_restant_du:    "dettes_leasing",
-
-  // Entretien immeuble
-  montant_ttc:         "_entretien_montant",
+  solde_hypotheque:     "for_hypotheque",
+  valeur_fiscale:       "for_immobilier",
+  adresse_bien:         "adresse_bien",
+  frais_medicaux_net:   "frais_medicaux",
+  montant_don:          "dons",
+  frais_garde:          "frais_garde",
+  frais_prof_effectifs: "frais_prof",
+  km_trajet:            "km_trajet",
+  dettes:               "dettes",
+  leasing_solde:        "dettes_leasing",
+  montant_ttc:          "frais_entretien",
 };
 
-export function applyOCRToStore(ocrResult, importFromDoc, setField, SOURCE) {
+export function applyOCRToStore(ocrResult, importFromDoc) {
   if (!ocrResult || ocrResult._error) return;
-
+  const src = ocrResult._filename || ocrResult._type || "document";
   for (const [ocrKey, storeKey] of Object.entries(FIELD_MAP)) {
     const val = ocrResult[ocrKey];
     if (val === undefined || val === null || val === "" || val === 0) continue;
-
-    // Cas spécial entretien : accumuler
-    if (storeKey === "_entretien_montant" && ocrResult.deductible_fiscal) {
-      importFromDoc("frais_entretien_reel", val, ocrResult._filename);
-      continue;
-    }
-
-    importFromDoc(storeKey, val, ocrResult._filename || ocrResult._docType);
+    importFromDoc(storeKey, val, src);
   }
-}
-
-// ── OCR multiple (tous les fichiers de la checklist) ─────────────────
-export async function ocrAllDocuments(uploads, importFromDoc, SOURCE, onProgress) {
-  const entries = Object.entries(uploads).filter(([, file]) => file instanceof File);
-  const results = {};
-  let done = 0;
-
-  for (const [docType, file] of entries) {
-    onProgress?.(`📄 Lecture ${file.name}…`, Math.round((done / entries.length) * 80));
-    const result = await ocrDocument(file, docType);
-    results[docType] = result;
-    applyOCRToStore(result, importFromDoc, null, SOURCE);
-    done++;
-  }
-
-  onProgress?.("✅ Documents analysés", 90);
-  return results;
 }
