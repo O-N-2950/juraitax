@@ -11,6 +11,7 @@ import { TrustBanner, TrustBlock, TrustFooter } from "./TrustBadges";
 import { AnimatedAmount, Confetti, CantonWatermark, FadeIn, SavingsBadge } from "./WowEffects";
 import { imprimerCopieContribuable } from "./PrintContribuable";
 import { DepotDeclaration } from "./DepotDeclaration";
+import { SubsidyWinWinBlock } from "./SubsidyWinWin";
 
 // ═══════════════════════════════════════════════
 //  ÉCRAN WELCOME
@@ -85,6 +86,8 @@ export function Welcome() {
             { icon:"📎", tk:"adv_zero_saisie",  dk:"adv_zero_saisie_desc" },
             { icon:"🧠", tk:"adv_optimise",      dk:"adv_optimise_desc" },
             { icon:"📄", tk:"adv_pdf",           dk:"adv_pdf_desc" },
+            { icon:"⏱️", tk:"adv_temps",          dk:"adv_temps_desc" },
+            { icon:"🛡️", tk:"adv_erreur",         dk:"adv_erreur_desc" },
           ].map((x, i) => (
             <div key={i} style={{ display:"flex", gap:14, padding:"14px 16px", borderRadius:12, background:S.surface, border:`1px solid ${S.border}`, marginBottom:8 }}>
               <span style={{ fontSize:22, flexShrink:0 }}>{x.icon}</span>
@@ -619,6 +622,7 @@ export function Result() {
           </Btn>
         </div>
 
+        <SubsidyWinWinBlock data={data} result={r} lang={lang} />
         <DepotDeclaration canton={cantonConfig?.canton || "JU"} lang={lang} />
         <TrustFooter lang={lang} />
       </div>
