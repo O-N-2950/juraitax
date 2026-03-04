@@ -654,3 +654,16 @@ function runTests() {
 if (typeof require !== 'undefined' && require.main === module) {
   runTests();
 }
+
+// ── Export ES Module (Vite/React) ─────────────────────────────────────
+export {
+  calculerDeclarationNE,
+  calculerImpotRevenuICC,
+  calculerImpotFortuneICC,
+  calculerDeductions,
+  BAREME_REVENU_NE,
+  BAREME_FORTUNE_NE,
+  COMMUNES_NE,
+  CONSTANTES_NE,
+  VP_TABLE_NE,
+};
