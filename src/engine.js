@@ -1,3 +1,5 @@
+import { calculerDeclarationNE, COMMUNES_NE } from './ne_engine_2025.js';
+
 /**
  * ============================================================
  * tAIx — Moteur Fiscal Jura 2025
@@ -666,10 +668,120 @@ function validerDeclaration(result, inputData) {
 // 15. EXPORT
 // ============================================================
 
+
+// ============================================================
+// ROUTEUR CANTONS — JU / NE
+// Source: tAIx multi-canton architecture
+// ============================================================
+
+const _COMMUNES_NE_PAR_NOM = {};
+Object.entries(COMMUNES_NE).forEach(([id, c]) => {
+  _COMMUNES_NE_PAR_NOM[c.nom.toLowerCase()] = parseInt(id);
+});
+
+function _adaptStoreToNE(data) {
+  const gemeindeId = _COMMUNES_NE_PAR_NOM[(data.commune||'neuchâtel').toLowerCase()] || 2708;
+  const etatCivil = (data.marie||data.etatCivil===2||data.etatCivil==='marie')
+    ? 'marie' : ((data.nbEnfantsMineurs||0)>0 ? 'monoparental' : 'celibataire');
+  const confMap = {'catholique':'catholique','reformee':'reformee','réformée':'reformee',
+    'israelite':'israelite','israélite':'israelite'};
+  const confession = confMap[(data.confession||'').toLowerCase()]||'sans_confession';
+  const divid = data.rendementTitresNet||0;
+  return {
+    gemeindeId, etatCivil, confession,
+    salaire1: data.salaire||data.salaire1||0,
+    salaire2: data.salaire2||data.salaire_conjoint||0,
+    renteAVS: (data.avs_homme||0)+(data.avs_femme||0),
+    renteLPP: data.lpp||0,
+    revenuLocatif: data.rendementImmoNet||0,
+    dividendes: divid,
+    nbEnfants: data.nbEnfantsMineurs||data.nbEnfants||0,
+    fraisGardeEffectifs: data.fraisGarde||0,
+    fraisMaladieEffectifs: data.fraisMaladie||0,
+    fraisFormationEffectifs: data.fraisFormation||0,
+    pilier3aVerse: data.pilier3a||(data.pilier2_3_homme||0)+(data.pilier2_3_femme||0),
+    rachat2ePilier: data.rachatLPP||0,
+    hasPilier2: data.hasPilier2!==false,
+    dons: data.dons||0,
+    partisPolitiques: data.partisPolitiques||0,
+    interetsHypothecaires: data.interetsHypothecaires||0,
+    fortune: (data.biensFonciers||0)+(data.titresPrives||0),
+    rendementsFortuneBruts: divid+(data.interetsEpargne||0),
+    dettePrivee: data.dettesHypothecaires||0,
+  };
+}
+
+function _adaptNEResult(res) {
+  const { impotRevenu, impotFortune, deductions } = res;
+  const opts = [];
+  const manque3a = 7258 - deductions.pilier3a;
+  if (manque3a > 0 && res.revenuBrut > 0) {
+    opts.push({ label:'Pilier 3a — maximiser', economie: Math.round(manque3a*0.28),
+      detail:`Versez encore CHF ${manque3a.toLocaleString('fr-CH')} sur votre pilier 3a.`, cta:null });
+  }
+  if ((res.revenuBrut||0) > 0) {
+    opts.push({ label:'Subsides assurance maladie NE', economie:0,
+      detail:'Vérifiez votre droit aux réductions de primes avec WIN WIN Finance.', cta:'winwin' });
+  }
+  return {
+    impotTotal:    res.totalICC,
+    impotCantonal: impotRevenu.impotEtatNet !== undefined ? impotRevenu.impotEtatNet : impotRevenu.impotEtat,
+    impotCommunal: impotRevenu.impotCommune,
+    impotFed:      0,
+    impotFor:      impotFortune.total||0,
+    detail: {
+      pilier3a:               deductions.pilier3a||0,
+      rachatLPP:              deductions.rachat2ePilier||0,
+      primesDeductibles:      0,
+      fraisGardeDeductibles:  deductions.fraisGarde||0,
+      fraisMaladieDeductibles:deductions.fraisMaladie||0,
+      donsDeductibles:        deductions.deductionDons||0,
+    },
+    optimisations:   opts,
+    revenuImposable: res.revenuImposable||0,
+    fortuneImposable:res.fortuneImposable||0,
+    commune:         res.commune?.nom||'Neuchâtel',
+    canton:          'NE',
+    _raw:            res,
+  };
+}
+
+const _calculerDeclarationJU = calculerDeclaration;
+
+function calculerDeclarationRouter(data) {
+  const canton = data.canton||data.cantonCode||'JU';
+  if (canton === 'NE') {
+    return _adaptNEResult(calculerDeclarationNE(_adaptStoreToNE(data)));
+  }
+  // JU par défaut
+  const r = _calculerDeclarationJU(data);
+  return {
+    impotTotal:    r.totalImpots||0,
+    impotCantonal: r.impotEtatRevenu||0,
+    impotCommunal: r.impotCommunalRevenu||0,
+    impotFed:      r.impotIFD||0,
+    impotFor:      (r.impotEtatFortune||0)+(r.impotCommunalFortune||0),
+    detail: {
+      pilier3a:               r.DI525_detail?.pilier3a||0,
+      rachatLPP:              0,
+      primesDeductibles:      r.DI525||0,
+      fraisGardeDeductibles:  0,
+      fraisMaladieDeductibles:r.DI580||0,
+      donsDeductibles:        r.DI585||0,
+    },
+    optimisations:   [],
+    revenuImposable: r.DI690||0,
+    fortuneImposable:r.DI890rounded||0,
+    commune:         r.commune||'',
+    canton:          'JU',
+    _raw:            r,
+  };
+}
+
 // Export Node.js / ES Module
 if (typeof module !== 'undefined') {
   module.exports = {
-    calculerDeclaration,
+    calculerDeclaration: calculerDeclarationRouter,
     calcul525ICC,
     calculImpotRevenuICC,
     calculImpotFortuneICC,
