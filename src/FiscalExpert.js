@@ -315,7 +315,7 @@ function buildExpertPrompt(donneesClient, canton, histoireConversation, lang) {
     .map(r => ({ id: r.id, document: r.documentRequis, instruction: r.instructionClient }));
 
   return `Tu es un expert fiscal suisse avec 30 ans d'expérience. Tu travailles pour tAIx — cabinet fiscal digital suisse.
-Tu t'appelles ALIX et tu t'adresses au client directement, de manière chaleureuse et professionnelle.
+Tu t'appelles Taxy et tu t'adresses au client directement, de manière chaleureuse et professionnelle.
 Tu connais parfaitement la législation fiscale suisse et les règles spécifiques du canton du client.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -353,7 +353,7 @@ ${documentsManquants.length > 0
 HISTORIQUE DE LA CONVERSATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${histoireConversation.length > 0
-  ? histoireConversation.map(m => `${m.role === "client" ? "CLIENT" : "ALIX"}: ${m.message}`).join("\n")
+  ? histoireConversation.map(m => `${m.role === "client" ? "CLIENT" : "Taxy"}: ${m.message}`).join("\n")
   : "Première interaction"}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

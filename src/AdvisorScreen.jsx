@@ -1,13 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  tAIx — AdvisorScreen.jsx v2
-//  Expert fiscal ALIX — dialogue interactif, documents manquants, optimisations
+//  Expert fiscal Taxy — dialogue interactif, documents manquants, optimisations
 //  Mars 2026 — PEP's Swiss SA
 // ═══════════════════════════════════════════════════════════════════════
 import { useState } from "react";
 import { repondreQuestion } from "./FiscalExpert";
 
-// ── Message ALIX ──────────────────────────────────────────────────────
-function MessageAlix({ message }) {
+// ── Message Taxy ──────────────────────────────────────────────────────
+function MessageTaxy({ message }) {
   if (!message) return null;
   return (
     <div style={{ padding:"18px 20px", borderRadius:14, marginBottom:16,
@@ -18,7 +18,7 @@ function MessageAlix({ message }) {
         <div>
           <div style={{ fontSize:11, color:"#60A5FA", fontFamily:"'Outfit',sans-serif",
                         fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>
-            ALIX — Experte fiscale tAIx
+            Taxy — Expert fiscal tAIx
           </div>
           <div style={{ fontSize:15, color:"#E8EDF2", fontFamily:"'Cormorant Garamond',serif",
                         fontWeight:400, lineHeight:1.6, whiteSpace:"pre-line" }}>
@@ -175,7 +175,7 @@ function Question({ q, onAnswer, lang }) {
     <div style={S.box}>
       <div style={{ fontSize:10, color:"#5A7A99", fontFamily:"'Outfit',sans-serif",
                     marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>
-        ALIX — Conseillère tAIx
+        Taxy — Conseiller tAIx
       </div>
       <div style={S.q}>{q.question}</div>
       {q.explication && <div style={S.exp}>{q.explication}</div>}
@@ -246,12 +246,12 @@ export function AdvisorScreen({ advisorData, lang = "fr", onComplete, setField, 
 
   const tLabel = {
     fr: { next:"Calculer ma déclaration →", nextBlock:"⛔ Document manquant — calcul impossible",
-          title:"ALIX — Experte fiscale tAIx", loading:"ALIX analyse vos réponses…" },
+          title:"Taxy — Expert fiscal tAIx", loading:"Taxy analyse vos réponses…" },
     de: { next:"Steuererklärung berechnen →", nextBlock:"⛔ Fehlende Dokumente",
-          title:"ALIX — tAIx Steuerexpertin", loading:"ALIX analysiert…" },
+          title:"Taxy — tAIx Steuerexperte", loading:"Taxy analysiert…" },
     en: { next:"Calculate my tax return →", nextBlock:"⛔ Missing document",
-          title:"ALIX — tAIx Tax Expert", loading:"ALIX is analysing…" },
-  }[lang] || { next:"Calculer →", nextBlock:"⛔ Document manquant", title:"ALIX", loading:"…" };
+          title:"Taxy — tAIx Tax Expert", loading:"Taxy is analysing…" },
+  }[lang] || { next:"Calculer →", nextBlock:"⛔ Document manquant", title:"Taxy", loading:"…" };
 
   async function handleAnswer(question, reponse) {
     // Appliquer au store
@@ -326,8 +326,8 @@ export function AdvisorScreen({ advisorData, lang = "fr", onComplete, setField, 
       {/* Ajustements automatiques */}
       <AjustementsAuto ajustements={ajustementsAuto} />
 
-      {/* Message ALIX */}
-      <MessageAlix message={currentData?.message_client} />
+      {/* Message Taxy */}
+      <MessageTaxy message={currentData?.message_client} />
 
       {/* Documents manquants BLOQUANTS */}
       {docsBloquants.map(d => <DocumentManquant key={d.id} doc={d} />)}
