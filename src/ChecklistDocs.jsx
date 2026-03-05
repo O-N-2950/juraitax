@@ -19,7 +19,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useStore, SOURCE } from "./store";
 import { ocrDocument, fusionnerOCR, applyOCRToStore } from "./ocr";
-import { genererQuestionsIA } from "./FiscalAdvisor";
+import { consulterExpertFiscal, optimiserDeclaration, analyserDocumentsManquants } from "./FiscalExpert";
 
 import { AdvisorScreen } from "./AdvisorScreen";
 import { GlobalStyles, T as S } from "./ui";
@@ -272,11 +272,71 @@ export function ChecklistScreen() {
     setAdvisorLoading(true);
     try {
       const storeData = useStore.getState().fields || {};
-      // Passe la fusion OCR + données store à Claude — il génère les questions lui-même
       const donneesOCR = results._fusion || results;
-      const advice = await genererQuestionsIA(donneesOCR, storeData, lang);
-      if (advice?.questions?.length > 0) {
-        setAdvisorData(advice); setAdvisorLoading(false); setShowAdvisor(true); return;
+
+      // ── ÉTAPE 1 : Optimisation automatique AVANT tout ─────────────
+      // tAIx applique le maximum légal autorisé sans attendre que le client demande
+      const canton = (donneesOCR.canton || donneesOCR._canton || "JU").toUpperCase();
+      const { donneesOptimisees, ajustements } = optimiserDeclaration(
+        { ...storeData, ...donneesOCR },
+        canton
+      );
+
+      // Appliquer les ajustements automatiques au store
+      for (const aj of ajustements) {
+        if (aj.auto && aj.gain > 0) {
+          useStore.getState().importFromDoc(aj.champ, aj.apres, "tAIx_optimisation");
+        }
+      }
+
+      // ── ÉTAPE 2 : Expert fiscal IA — raisonnement en chaîne ───────
+      const advice = await consulterExpertFiscal({
+        donneesClient: donneesOptimisees,
+        histoireConversation: [],
+        lang,
+      });
+
+      // Enrichir avec les ajustements automatiques pour affichage
+      const adviceEnrichi = {
+        ...advice,
+        ajustements_auto: ajustements,
+        // Convertir documents_requis en alertes bloquantes affichables
+        alertes: [
+          // Documents manquants BLOQUANTS en tête
+          ...(advice.documents_requis || [])
+            .filter(d => d.bloquant)
+            .map(d => ({
+              id: d.id,
+              titre: `📄 Document requis : ${d.document}`,
+              message: d.instruction_precise || "Ce document est obligatoire pour calculer votre impôt.",
+              action: d.instruction_precise,
+              severite: "error",
+            })),
+          // Documents recommandés
+          ...(advice.documents_requis || [])
+            .filter(d => !d.bloquant)
+            .map(d => ({
+              id: d.id,
+              titre: `💡 ${d.document}`,
+              message: d.instruction_precise || "",
+              severite: "info",
+            })),
+          // Alertes IA originales
+          ...(advice.alertes || []).map(a => ({
+            id: a.type + "_" + Math.random(),
+            titre: a.type === "opportunite" ? "💰 Opportunité fiscale" :
+                   a.type === "anomalie"    ? "⚠️ Anomalie détectée" : "ℹ️ Information",
+            message: a.message,
+            severite: a.type === "anomalie" ? "warning" : "info",
+          })),
+        ],
+      };
+
+      if (advice) {
+        setAdvisorData(adviceEnrichi);
+        setAdvisorLoading(false);
+        setShowAdvisor(true);
+        return;
       }
     } catch (e) { console.error("launchAdvisor:", e); }
     setAdvisorLoading(false);
