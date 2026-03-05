@@ -188,17 +188,20 @@ export function PixouChat({ donneesClient = {}, lang = "fr", isOpen: isOpenProp,
   function handleOpen() {
     setIsOpen(true); setBubble(false);
     if (messages.length === 0) {
-      const nom = donneesClient.prenom || donneesClient.nom || "";
-      const welcome = t.welcome(nom);
+      const nom = donneesClient.prenom || "";
+      // Pixou commence TOUJOURS par demander ce qui a changé
+      const welcomeMsg = nom
+        ? `Bonjour **${nom}** ! Je suis Pixou, votre expert fiscal tAIx.\n\nAvant tout — **qu'est-ce qui a changé dans votre situation depuis votre dernière déclaration fiscale ?** (déménagement, mariage, naissance, retraite, nouveau travail, achat immobilier…)`
+        : `Bonjour ! Je suis **Pixou**, votre expert fiscal tAIx.\n\nPour optimiser votre déclaration, dites-moi d'abord — **qu'est-ce qui a changé dans votre situation depuis l'an dernier ?**`;
       const mood = "salue";
       setMood(mood);
       setMessages([{
-        id: "welcome", role: "assistant", content: welcome,
+        id: "welcome", role: "assistant", content: welcomeMsg,
         mood, timestamp: new Date(),
         actions: [
-          { label: "🔍 Analyser mon dossier", id: "analyse" },
-          { label: "💰 Maximiser mes déductions", id: "optimise" },
-          { label: "❓ Poser une question", id: "question" },
+          { label: "Rien de particulier", id: "rien_change" },
+          { label: "J'ai déménagé", id: "demenagement" },
+          { label: "Changement de situation", id: "changement" },
         ],
       }]);
     }
@@ -221,14 +224,19 @@ ${JSON.stringify(donneesClient, null, 2)}
 
 RÈGLES ABSOLUES :
 1. Tu travailles TOUJOURS dans l'intérêt du client face au fisc
-2. Maximise chaque déduction légale — CHF 300 dons minimum dans toute DI
-3. Forfait assurances ${estRetraite ? "8'380 CHF (marié sans pilier)" : "selon situation"} — toujours le maximum
-4. Pose des questions intelligentes UNIQUEMENT selon le profil
-5. ${estRetraite ? "JAMAIS de question sur pilier 3a actif, trajet, télétravail" : ""}
-6. Si document manquant → explique EXACTEMENT où le trouver
-7. Réponds en ${lang === "fr" ? "français" : lang === "de" ? "allemand" : lang === "it" ? "italien" : lang === "pt" ? "portugais" : lang === "es" ? "espagnol" : "anglais"}
-8. Sois chaleureux, précis, concis — max 3-4 phrases par réponse
-9. Chiffre toujours l'impact en CHF quand possible`;
+2. Tu MÈNES l'entretien — tu es proactif, tu guides, tu ne subis pas
+3. PREMIÈRE QUESTION si c'est le début : "Qu'est-ce qui a changé dans votre situation depuis votre dernière déclaration ?"
+   → Détecte : déménagement, mariage, naissance, retraite, achat immobilier, maladie
+4. DONS : demande systématiquement. S'il n'a pas de reçus, applique le minimum légal
+   → Plancher = max(300, 0.4% du revenu net). Maximum légal = 20% revenu net
+   → Ne jamais dire "CHF 300 automatiquement" — c'est proportionnel au revenu
+5. Forfait assurances ${estRetraite ? "8'380 CHF (marié sans pilier)" : "selon situation"} — toujours le maximum légal
+6. Pose des questions intelligentes UNIQUEMENT selon le profil
+7. ${estRetraite ? "JAMAIS de question sur pilier 3a actif, trajet, télétravail" : ""}
+8. Si document manquant → explique EXACTEMENT où le trouver
+9. Réponds en ${lang === "fr" ? "français" : lang === "de" ? "allemand" : lang === "it" ? "italien" : lang === "pt" ? "portugais" : lang === "es" ? "espagnol" : "anglais"}
+10. Max 3-4 phrases par réponse — une action claire par message
+11. Chiffre TOUJOURS l'impact en CHF — "cette déduction vous économise environ CHF X"`;
 
     const conversationHistory = history
       .filter(m => m.id !== "welcome")
@@ -297,9 +305,12 @@ RÈGLES ABSOLUES :
 
   function handleAction(action) {
     const actionMessages = {
-      analyse: "Peux-tu analyser mon dossier et me dire ce qui manque ?",
-      optimise: "Comment maximiser mes déductions cette année ?",
-      question: null, // Focus input
+      analyse:       "Peux-tu analyser mon dossier et me dire ce qui manque ?",
+      optimise:      "Comment maximiser mes déductions cette année ?",
+      question:      null,
+      rien_change:   "Rien de particulier n'a changé depuis l'an dernier.",
+      demenagement:  "J'ai déménagé en 2025.",
+      changement:    "J'ai eu un changement de situation en 2025.",
     };
     const msg = actionMessages[action.id];
     if (msg) sendMessage(msg);
