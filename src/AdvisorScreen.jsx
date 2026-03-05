@@ -1,24 +1,24 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  tAIx — AdvisorScreen.jsx v2
-//  Expert fiscal Taxy — dialogue interactif, documents manquants, optimisations
+//  Expert fiscal Pixou — dialogue interactif, documents manquants, optimisations
 //  Mars 2026 — PEP's Swiss SA
 // ═══════════════════════════════════════════════════════════════════════
 import { useState } from "react";
 import { repondreQuestion } from "./FiscalExpert";
 
-// ── Message Taxy ──────────────────────────────────────────────────────
-function MessageTaxy({ message }) {
+// ── Message Pixou ──────────────────────────────────────────────────────
+function MessagePixou({ message }) {
   if (!message) return null;
   return (
     <div style={{ padding:"18px 20px", borderRadius:14, marginBottom:16,
                   background:"linear-gradient(135deg,rgba(37,99,235,0.15),rgba(13,27,42,0.9))",
                   border:"1px solid rgba(37,99,235,0.35)" }}>
       <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
-        <div style={{ fontSize:28, lineHeight:1 }}>🧑‍💼</div>
+        <img src="/pixou.png" alt="Pixou" style={{ width:52, height:52, objectFit:"contain", flexShrink:0 }} />
         <div>
           <div style={{ fontSize:11, color:"#60A5FA", fontFamily:"'Outfit',sans-serif",
                         fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>
-            Taxy — Expert fiscal tAIx
+            Pixou — Expert fiscal tAIx
           </div>
           <div style={{ fontSize:15, color:"#E8EDF2", fontFamily:"'Cormorant Garamond',serif",
                         fontWeight:400, lineHeight:1.6, whiteSpace:"pre-line" }}>
@@ -175,7 +175,7 @@ function Question({ q, onAnswer, lang }) {
     <div style={S.box}>
       <div style={{ fontSize:10, color:"#5A7A99", fontFamily:"'Outfit',sans-serif",
                     marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>
-        Taxy — Conseiller tAIx
+        Pixou — Conseiller tAIx
       </div>
       <div style={S.q}>{q.question}</div>
       {q.explication && <div style={S.exp}>{q.explication}</div>}
@@ -246,12 +246,12 @@ export function AdvisorScreen({ advisorData, lang = "fr", onComplete, setField, 
 
   const tLabel = {
     fr: { next:"Calculer ma déclaration →", nextBlock:"⛔ Document manquant — calcul impossible",
-          title:"Taxy — Expert fiscal tAIx", loading:"Taxy analyse vos réponses…" },
+          title:"Pixou — Expert fiscal tAIx", loading:"Pixou analyse vos réponses…" },
     de: { next:"Steuererklärung berechnen →", nextBlock:"⛔ Fehlende Dokumente",
-          title:"Taxy — tAIx Steuerexperte", loading:"Taxy analysiert…" },
+          title:"Pixou — tAIx Steuerexperte", loading:"Pixou analysiert…" },
     en: { next:"Calculate my tax return →", nextBlock:"⛔ Missing document",
-          title:"Taxy — tAIx Tax Expert", loading:"Taxy is analysing…" },
-  }[lang] || { next:"Calculer →", nextBlock:"⛔ Document manquant", title:"Taxy", loading:"…" };
+          title:"Pixou — tAIx Tax Expert", loading:"Pixou is analysing…" },
+  }[lang] || { next:"Calculer →", nextBlock:"⛔ Document manquant", title:"Pixou", loading:"…" };
 
   async function handleAnswer(question, reponse) {
     // Appliquer au store
@@ -326,8 +326,8 @@ export function AdvisorScreen({ advisorData, lang = "fr", onComplete, setField, 
       {/* Ajustements automatiques */}
       <AjustementsAuto ajustements={ajustementsAuto} />
 
-      {/* Message Taxy */}
-      <MessageTaxy message={currentData?.message_client} />
+      {/* Message Pixou */}
+      <MessagePixou message={currentData?.message_client} />
 
       {/* Documents manquants BLOQUANTS */}
       {docsBloquants.map(d => <DocumentManquant key={d.id} doc={d} />)}
