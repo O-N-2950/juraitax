@@ -666,3 +666,295 @@ function fallbackExpert(donneesClient, analyse, lang) {
     _analyse_locale:   analyse,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MOTEUR D'OPTIMISATION FISCALE — PRINCIPE ABSOLU
+//
+//  tAIx travaille TOUJOURS dans l'intérêt du client face au fisc.
+//  Règle d'or : appliquer le MAXIMUM légal autorisé, avec ou sans justificatif.
+//  Ne jamais laisser un client payer plus d'impôts que ce que la loi exige.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────
+// FORFAITS AUTOMATIQUES — applicables SANS justificatif
+// Source : pratique des administrations fiscales cantonales
+// ─────────────────────────────────────────────────────────────────────
+
+const FORFAITS_AUTOMATIQUES = {
+
+  JU: [
+    {
+      id: "dons_minimum",
+      champ: "dons",
+      description: "Dons — montant forfaitaire minimum accepté sans reçu",
+      calcul: (data) => {
+        // Le fisc JU accepte généralement ~300 CHF sans justificatif
+        // Si revenu imposable connu, on peut aller jusqu'à 1-2% sans discussion
+        const revenuNet = data.revenu_net_I || data.revenus_avs + data.revenus_lpp || 0;
+        return 300; // Minimum garanti sans justificatif
+      },
+      condition: (data) => !data.dons || data.dons < 300,
+      justificatif_requis: false,
+      note: "Le fisc JU accepte 300 CHF sans reçu. Augmentable avec justificatifs.",
+      impact: "CHF 15–50 d'économie fiscale",
+    },
+
+    {
+      id: "forfait_entretien_immo",
+      champ: "frais_entretien",
+      description: "Frais entretien immeuble — forfait 20% automatique si pas de factures",
+      calcul: (data) => {
+        const vl = data.valeur_locative || 0;
+        return Math.round(vl * 0.20);
+      },
+      condition: (data) => (data.valeur_locative > 0) && (!data.frais_entretien || data.frais_entretien < (data.valeur_locative * 0.20)),
+      justificatif_requis: false,
+      note: "Forfait légal 20% automatique pour immeubles > 10 ans. Aucun justificatif requis.",
+      impact: "Variable — peut représenter des milliers de CHF",
+    },
+
+    {
+      id: "frais_pro_forfait",
+      champ: "frais_pro",
+      description: "Frais professionnels — forfait minimum légal",
+      calcul: (data) => {
+        const salaire = data.revenus_salaire || 0;
+        if (salaire === 0) return 0;
+        const taux = Math.round(salaire * 0.03);
+        return Math.max(2000, Math.min(4000, taux));
+      },
+      condition: (data) => (data.revenus_salaire > 0) && (!data.frais_pro || data.frais_pro < 2000),
+      justificatif_requis: false,
+      note: "3% du salaire brut, min 2'000, max 4'000 CHF. Automatique.",
+      impact: "CHF 200–400 d'économie",
+    },
+
+    {
+      id: "forfait_assurances_max",
+      champ: "forfait_assurances_applique",
+      description: "Forfait assurances — toujours appliquer le maximum selon situation",
+      calcul: (data) => {
+        const marie = data.etat_civil === "marie" || data.etat_civil === "marié";
+        const pilierH = (data.cotisations_lpp || 0) > 0 || (data.pilier3a || 0) > 0;
+        const pilierF = (data.cotisations_lpp_conjoint || 0) > 0;
+        const nbEnfants = data.nb_enfants || 0;
+
+        let forfait;
+        if (marie) {
+          if (!pilierH && !pilierF) forfait = 8380;       // Rentiers mariés
+          else if (pilierH && pilierF) forfait = 6800;    // Les deux avec pilier
+          else forfait = 7590;                            // Un seul avec pilier
+        } else {
+          forfait = pilierH ? 3400 : 4190;
+        }
+        forfait += nbEnfants * 1020;
+        return forfait;
+      },
+      condition: (data) => true,
+      justificatif_requis: false,
+      note: "Forfait légal JU 2025 — toujours appliqué même si primes effectives inférieures.",
+      impact: "Base de calcul obligatoire",
+    },
+  ],
+
+  NE: [
+    {
+      id: "dons_minimum_ne",
+      champ: "dons",
+      description: "Dons — montant forfaitaire minimum NE",
+      calcul: () => 300,
+      condition: (data) => !data.dons || data.dons < 300,
+      justificatif_requis: false,
+      note: "Pratique NE : 300 CHF acceptés sans justificatif",
+      impact: "CHF 15–50",
+    },
+    {
+      id: "forfait_entretien_immo_ne",
+      champ: "frais_entretien",
+      description: "Forfait entretien immeuble NE — 20% valeur locative",
+      calcul: (data) => Math.round((data.valeur_locative || 0) * 0.20),
+      condition: (data) => (data.valeur_locative > 0) && (!data.frais_entretien),
+      justificatif_requis: false,
+      note: "Forfait légal NE — automatique sans justificatif",
+      impact: "Variable",
+    },
+  ],
+
+  BE: [
+    {
+      id: "dons_minimum_be",
+      champ: "dons",
+      description: "Dons — montant forfaitaire minimum BE",
+      calcul: () => 300,
+      condition: (data) => !data.dons || data.dons < 300,
+      justificatif_requis: false,
+      note: "Pratique BE : 300 CHF acceptés sans justificatif",
+      impact: "CHF 15–50",
+    },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// OPTIMISATIONS PROACTIVES — ce que l'expert cherche TOUJOURS
+// ─────────────────────────────────────────────────────────────────────
+
+const OPPORTUNITES_OPTIMISATION = [
+
+  {
+    id: "frais_maladie_sous_declares",
+    condition: (data) => (data.revenus_avs || 0) > 0 && !(data.frais_maladie > 0),
+    message: "Les frais médicaux non remboursés (médecin, dentiste, pharmacie, lunettes) sont souvent oubliés. Même 200–300 CHF peuvent dépasser la franchise et générer une déduction.",
+    action: "Demander les décomptes KPT/CSS/Helsana 2025",
+  },
+
+  {
+    id: "subsides_lamal_non_declares",
+    condition: (data) => {
+      const revenu = (data.revenus_avs || 0) + (data.revenus_lpp || 0);
+      return revenu > 0 && revenu < 60000 && !data.subsides_lamal;
+    },
+    message: "Avec ce niveau de revenu, des subsides LAMal sont peut-être perçus — ils réduisent la déduction assurances. À vérifier pour éviter une correction fiscale.",
+    action: "Vérifier avec le service des subsides cantonal",
+  },
+
+  {
+    id: "valeur_locative_optimisable",
+    condition: (data) => (data.valeur_locative || 0) > 0 && !(data.frais_entretien > 0),
+    message: "Sans factures d'entretien, le forfait de 20% s'applique automatiquement. Mais si des travaux ont été effectués en 2025, les frais effectifs peuvent être bien supérieurs au forfait.",
+    action: "Vérifier toutes les factures de travaux 2025",
+  },
+
+  {
+    id: "dette_hypothecaire_interets_max",
+    condition: (data) => (data.dette_hypotheque || 0) > 0 && !(data.interets_hypothecaires > 0),
+    message: "Une hypothèque sans intérêts déclarés est impossible. Ce champ est bloqué jusqu'à réception du relevé bancaire.",
+    action: "Demander relevé hypothécaire annuel OBLIGATOIRE",
+    bloquant: true,
+  },
+
+  {
+    id: "impot_anticipe_recuperable",
+    condition: (data) => (data.revenus_titres || 0) > 0 && !(data.impot_anticipe > 0),
+    message: "Des rendements de capitaux ont été déclarés — l'impôt anticipé de 35% est récupérable. Vérifier l'attestation fiscale bancaire pour le montant exact.",
+    action: "Récupérer le montant IA sur l'attestation fiscale",
+  },
+
+  {
+    id: "deduction_personnes_agees_verifier",
+    condition: (data) => {
+      const age = data.naissance
+        ? 2025 - parseInt((data.naissance || "").split(/[-/]/)[0])
+        : 0;
+      return age >= 65;
+    },
+    message: "Personne de 65 ans ou plus — vérifier la déduction personnes âgées (code 670 JU). Elle peut atteindre plusieurs milliers de CHF selon le revenu.",
+    action: "Vérifier table 670 JuraTax selon revenu net II",
+  },
+
+  {
+    id: "conjoint_avs_verifier",
+    condition: (data) =>
+      (data.etat_civil === "marie" || data.etat_civil === "marié") &&
+      (data.revenus_avs > 0) &&
+      !(data.revenus_avs_conjoint > 0),
+    message: "Client marié avec rente AVS — la rente du conjoint doit également être déclarée. Deux attestations CFC nécessaires.",
+    action: "Demander attestation AVS du conjoint",
+    bloquant: true,
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────
+// FONCTION PRINCIPALE — Appliquer toutes les optimisations
+// Retourne les données du client OPTIMISÉES + liste des ajustements faits
+// ─────────────────────────────────────────────────────────────────────
+
+export function optimiserDeclaration(donneesClient, canton = "JU") {
+  const optimisees = { ...donneesClient };
+  const ajustements = [];
+  const opportunites = [];
+
+  // 1. Appliquer forfaits automatiques
+  const forfaits = FORFAITS_AUTOMATIQUES[canton] || FORFAITS_AUTOMATIQUES.JU;
+  for (const forfait of forfaits) {
+    if (!forfait.condition(optimisees)) continue;
+
+    const montant = forfait.calcul(optimisees);
+    if (!montant || montant <= 0) continue;
+
+    const actuel = optimisees[forfait.champ] || 0;
+    if (montant > actuel) {
+      optimisees[forfait.champ] = montant;
+      ajustements.push({
+        champ:      forfait.champ,
+        avant:      actuel,
+        apres:      montant,
+        gain:       montant - actuel,
+        description: forfait.description,
+        note:        forfait.note,
+        impact:      forfait.impact,
+        auto:        !forfait.justificatif_requis,
+      });
+    }
+  }
+
+  // 2. Détecter opportunités d'optimisation
+  for (const opp of OPPORTUNITES_OPTIMISATION) {
+    if (opp.condition(optimisees)) {
+      opportunites.push({
+        id:       opp.id,
+        message:  opp.message,
+        action:   opp.action,
+        bloquant: opp.bloquant || false,
+      });
+    }
+  }
+
+  return {
+    donneesOptimisees: optimisees,
+    ajustements,       // Ce qu'on a changé automatiquement (avec justification)
+    opportunites,      // Ce qu'on recommande de vérifier
+    economie_estimee:  ajustements.reduce((s, a) => s + (a.gain || 0), 0),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PROMPT ENRICHI AVEC LA PHILOSOPHIE D'OPTIMISATION
+// Injecté dans buildExpertPrompt() — l'IA CONNAÎT cette philosophie
+// ─────────────────────────────────────────────────────────────────────
+
+export const PHILOSOPHIE_OPTIMISATION = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHILOSOPHIE ABSOLUE tAIx — GRAVÉE DANS LE CODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tu travailles TOUJOURS dans l'intérêt du client face au fisc.
+
+RÈGLES D'OR :
+
+1. FORFAITS AUTOMATIQUES sans justificatif :
+   → Dons : minimum CHF 300 dans TOUTE déclaration (pratique fiscale admise)
+   → Frais entretien immeuble : forfait 20% automatique si pas de factures
+   → Frais professionnels : forfait 3% (min 2'000, max 4'000) sans justificatif
+   → Forfait assurances : TOUJOURS le maximum légal selon situation familiale
+
+2. MAXIMUM LÉGAL en toutes circonstances :
+   → Si un client a droit à CHF 8'380 de déduction assurances → on met 8'380
+   → Si le forfait est meilleur que l'effectif → on prend le forfait
+   → Si l'effectif est meilleur → on prend l'effectif (avec justificatifs)
+   → Jamais laisser un client sous-déduire par méconnaissance
+
+3. PROACTIVITÉ :
+   → Vérifier systématiquement les déductions oubliées (personnes âgées, IA récupérable...)
+   → Signaler toute opportunité même si le client n'a pas posé la question
+   → Comparer TOUJOURS forfait vs effectif pour l'immeuble
+
+4. TRANSPARENCE TOTALE :
+   → Expliquer POURQUOI on applique chaque déduction
+   → Chiffrer l'économie fiscale en CHF pour chaque optimisation
+   → Le client comprend ce qu'on fait pour lui
+
+EXEMPLE CONCRET :
+Un retraité n'a pas mentionné de dons → tAIx applique automatiquement CHF 300
+et lui explique : "J'ai ajouté CHF 300 de dons — le fisc l'accepte sans reçu
+et cela vous économise environ CHF 20 d'impôts."
+`;
