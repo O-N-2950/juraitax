@@ -14,6 +14,7 @@ const PIXOU_MOODS = {
   question1: "/pixou-question1.png",  // Pixou pose une question (clin d'œil)
   question2: "/pixou-question2.png",  // Pixou réfléchit sérieusement
   static:    "/pixou.png",            // Neutre (image fixe)
+  error:     "/pixou-error.png",       // Erreur, bug, problème technique
 };
 
 // Alterne entre question1 et question2 pour varier
@@ -23,6 +24,7 @@ function detectMoodPixou(text) {
   if (/bonjour|bienvenu|salut|hello|hoi|ciao|olá/i.test(l)) return "salue";
   if (/document|manqu|besoin|relevé|attestation|facture|cherch/i.test(l)) return "cherche";
   if (/calcul|analys|optimis|vérifie|compar/i.test(l)) return "calcule";
+  if (/erreur|error|bug|problème|souci|impossible|échec|oups/i.test(l)) return "error";
   if (/\?|comment|pourquoi|quand|où|avez-vous|est-ce|avez|possédez|percevez|avez-vous/i.test(l)) {
     _questionToggle = !_questionToggle;
     return _questionToggle ? "question1" : "question2";
@@ -269,8 +271,14 @@ RÈGLES ABSOLUES :
     setIsTyping(true);
     setMood("calcule");
 
-    const response = await callPixou(msg, [...messages, userMsg]);
-    const mood = detectMoodPixou(response);
+    let response, mood;
+    try {
+      response = await callPixou(msg, [...messages, userMsg]);
+      mood = detectMoodPixou(response);
+    } catch (e) {
+      response = getFallback(msg, lang);
+      mood = "error";
+    }
     setMood(mood);
 
     setMessages(prev => [...prev, {
