@@ -16,6 +16,7 @@ const PIXOU_MOODS = {
   static:    "/pixou.png",            // Neutre (image fixe)
   error:          "/pixou-error.png",          // Erreur, bug, problème technique
   remboursement:   "/pixou-remboursement.png",   // Résultat positif, remboursement !
+  ocr:             "/pixou-ocr.png",              // Lecture documents, OCR en cours
 };
 
 // Alterne entre question1 et question2 pour varier
@@ -27,6 +28,7 @@ function detectMoodPixou(text) {
   if (/calcul|analys|optimis|vérifie|compar/i.test(l)) return "calcule";
   if (/erreur|error|bug|problème|souci|impossible|échec|oups/i.test(l)) return "error";
   if (/remboursement|économi|bravo|félicit|gagné|solde.*(favor|positif)|restitu/i.test(l)) return "remboursement";
+  if (/ocr|scan|lire|lecture|analys.*document|extrait|reconnu/i.test(l)) return "ocr";
   if (/\?|comment|pourquoi|quand|où|avez-vous|est-ce|avez|possédez|percevez|avez-vous/i.test(l)) {
     _questionToggle = !_questionToggle;
     return _questionToggle ? "question1" : "question2";

@@ -424,9 +424,20 @@ export function ChecklistScreen() {
             </div>
           </div>
           {analyzing && (
-            <div style={{ height:3, background:S.card, borderRadius:99, overflow:"hidden" }}>
-              <div style={{ height:"100%", borderRadius:99, background:`linear-gradient(90deg,${S.gold},#D4B55A)`,
-                width:`${Math.round((progress.done/Math.max(progress.total,1))*100)}%`, transition:"width 0.3s" }} />
+            <div>
+              {/* Pixou OCR */}
+              <div style={{ display:"flex", justifyContent:"center", margin:"8px 0 4px" }}>
+                <img src="/pixou-ocr.png" alt="OCR en cours"
+                     style={{ width:100, objectFit:"contain" }} />
+              </div>
+              <div style={{ fontSize:11, color:"#C9A84C", fontFamily:"'Outfit',sans-serif",
+                            textAlign:"center", marginBottom:6 }}>
+                Pixou lit vos documents… {progress.done}/{progress.total}
+              </div>
+              <div style={{ height:3, background:S.card, borderRadius:99, overflow:"hidden" }}>
+                <div style={{ height:"100%", borderRadius:99, background:`linear-gradient(90deg,${S.gold},#D4B55A)`,
+                  width:`${Math.round((progress.done/Math.max(progress.total,1))*100)}%`, transition:"width 0.3s" }} />
+              </div>
             </div>
           )}
         </div>
