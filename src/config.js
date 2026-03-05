@@ -3,6 +3,9 @@
 //  PEP's Swiss SA | Bellevue 7 | 2950 Courgenay
 // ═══════════════════════════════════════════════
 
+import { COMMUNES_NE as _COMMUNES_NE_OBJ } from './ne_engine_2025.js';
+import { COMMUNES_BE as _COMMUNES_BE_OBJ } from './be_engine_2025.js';
+
 export const APP = {
   name: "JurAI Tax",
   tagline: "Déclaration fiscale optimisée par l'intelligence artificielle",
@@ -33,7 +36,7 @@ export const PRICING = {
 };
 
 // Communes Canton du Jura
-export const COMMUNES = [
+export const COMMUNES_JU = [
   "Alle","Asuel","Bassecourt","Beurnevésin","Bonfol","Bourrignon","Bressaucourt",
   "Buix","Bure","Chenevez","Cœuve","Courchapoix","Courchavon","Courfaivre",
   "Courgenay","Courrendlin","Courroux","Courtedoux","Courtételle","Damphreux-Lugnez",
@@ -43,6 +46,22 @@ export const COMMUNES = [
   "Saignelégier","Saint-Brais","Saint-Ursanne","Saulcy","Soubey","Soyhières",
   "Undervelier","Vendlincourt","Vermes",
 ].sort();
+
+// Backward compat — default = JU
+export const COMMUNES = COMMUNES_JU;
+
+// Communes Canton de Neuchâtel (noms extraits de ne_engine_2025.js)
+export const COMMUNES_NE_NOMS = Object.values(_COMMUNES_NE_OBJ).map(c => c.nom).sort();
+
+// Communes Canton de Berne (noms extraits de be_engine_2025.js)
+export const COMMUNES_BE_NOMS = _COMMUNES_BE_OBJ.map(c => c.nom).sort();
+
+// Map canton → liste de noms de communes
+export const COMMUNES_PAR_CANTON = {
+  JU: COMMUNES_JU,
+  NE: COMMUNES_NE_NOMS,
+  BE: COMMUNES_BE_NOMS,
+};
 
 // Multiplicateurs communaux 2025 (Canton du Jura)
 export const MULTIPLICATEURS = {

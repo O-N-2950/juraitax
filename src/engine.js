@@ -1,4 +1,5 @@
 import { calculerDeclarationNE, COMMUNES_NE } from './ne_engine_2025.js';
+import { calculerDeclarationBE, COMMUNES_BE } from './be_engine_2025.js';
 
 /**
  * ============================================================
@@ -746,12 +747,81 @@ function _adaptNEResult(res) {
   };
 }
 
+// ============================================================
+// ADAPTATEUR BE — store ↔ be_engine_2025
+// ============================================================
+
+const _COMMUNES_BE_PAR_NOM = {};
+COMMUNES_BE.forEach(c => {
+  _COMMUNES_BE_PAR_NOM[c.nom.toLowerCase()] = c.id;
+});
+
+function _adaptStoreToBE(data) {
+  const communeId = _COMMUNES_BE_PAR_NOM[(data.commune||'bern').toLowerCase()] || 351; // Bern default
+  const estMarié = !!(data.marie||data.etatCivil===2||data.etatCivil==='marie');
+  const confMap = {'catholique':'katholisch','réformée':'reformiert','reformee':'reformiert',
+    'christkatholik':'christkatholik','christcatholique':'christkatholik'};
+  const confession = confMap[(data.confession||'').toLowerCase()]||'keine';
+  return {
+    communeId,
+    estMarié,
+    confession,
+    revenuBrut: (data.salaire||data.salaire1||0)+(data.salaire2||data.salaire_conjoint||0)
+      +(data.avs_homme||0)+(data.avs_femme||0)+(data.lpp||0)+(data.rendementTitresNet||0),
+    deductions: 0,
+    fortune: (data.biensFonciers||0)+(data.titresPrives||0)-(data.dettesHypothecaires||0),
+    nbEnfants: data.nbEnfantsMineurs||data.nbEnfants||0,
+    aDeuxiemePilier: data.hasPilier2!==false,
+    pilier3a: data.pilier3a||(data.pilier2_3_homme||0)+(data.pilier2_3_femme||0),
+    dons: data.dons||0,
+    fraisGarde: data.fraisGarde||0,
+    fraisMaladie: data.fraisMaladie||0,
+    loyerValeurLocative: data.rendementImmoNet||0,
+    interetsDettes: data.interetsHypothecaires||0,
+  };
+}
+
+function _adaptBEResult(res) {
+  const opts = [];
+  if (res.revenuBrut > 0) {
+    const manque3a = 7258 - (res.pilier3a||0);
+    if (manque3a > 0) {
+      opts.push({ label:'Pilier 3a — maximiser', economie: Math.round(manque3a*0.30),
+        detail:`Versez encore CHF ${manque3a.toLocaleString('fr-CH')} sur votre pilier 3a.`, cta:null });
+    }
+  }
+  return {
+    impotTotal:    res.totalGlobal,
+    impotCantonal: res.impotCantonalRevenu,
+    impotCommunal: res.impotCommunalRevenu,
+    impotFed:      res.ifd,
+    impotFor:      (res.impotCantonalFortune||0)+(res.impotCommunalFortune||0),
+    detail: {
+      pilier3a:               0,
+      rachatLPP:              0,
+      primesDeductibles:      0,
+      fraisGardeDeductibles:  0,
+      fraisMaladieDeductibles:0,
+      donsDeductibles:        0,
+    },
+    optimisations:   opts,
+    revenuImposable: res.revenuNet||0,
+    fortuneImposable:res.fortuneImposable||0,
+    commune:         res.commune||'',
+    canton:          'BE',
+    _raw:            res,
+  };
+}
+
 const _calculerDeclarationJU = calculerDeclaration;
 
 function calculerDeclarationRouter(data) {
   const canton = data.canton||data.cantonCode||'JU';
   if (canton === 'NE') {
     return _adaptNEResult(calculerDeclarationNE(_adaptStoreToNE(data)));
+  }
+  if (canton === 'BE') {
+    return _adaptBEResult(calculerDeclarationBE(_adaptStoreToBE(data)));
   }
   // JU par défaut
   const r = _calculerDeclarationJU(data);
@@ -778,26 +848,26 @@ function calculerDeclarationRouter(data) {
   };
 }
 
-// Export Node.js / ES Module
-if (typeof module !== 'undefined') {
-  module.exports = {
-    calculerDeclaration: calculerDeclarationRouter,
-    calcul525ICC,
-    calculImpotRevenuICC,
-    calculImpotFortuneICC,
-    calculImpotIFD,
-    calculDeduction670,
-    validerDeclaration,
-    CONSTANTES,
-    COMMUNES_JU,
-    BAREME_ICC_REVENU_MARIE,
-    BAREME_ICC_REVENU_CELIBATAIRE,
-    BAREME_ICC_FORTUNE,
-    BAREME_IFD_MARIE,
-    BAREME_IFD_CELIBATAIRE,
-    Arrondi,
-  };
-}
+// Export ES Module
+export {
+  calculerDeclarationRouter as calculerDeclaration,
+  calcul525ICC,
+  calculImpotRevenuICC,
+  calculImpotFortuneICC,
+  calculImpotIFD,
+  calculDeduction670,
+  validerDeclaration,
+  CONSTANTES,
+  COMMUNES_JU,
+  COMMUNES_NE,
+  COMMUNES_BE,
+  BAREME_ICC_REVENU_MARIE,
+  BAREME_ICC_REVENU_CELIBATAIRE,
+  BAREME_ICC_FORTUNE,
+  BAREME_IFD_MARIE,
+  BAREME_IFD_CELIBATAIRE,
+  Arrondi,
+};
 
 // ============================================================
 // 16. TEST INTÉGRATION — CAS NEUKOMM 2025

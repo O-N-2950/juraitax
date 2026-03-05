@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useStore, SOURCE } from "./store";
 import { T, GlobalStyles, Btn, SecHead, Field, Cards, YN, TxtIn, AmtUpload, AuditBadge, InfoBox, Divider } from "./ui";
-import { COMMUNES, APP, BAREMES } from "./config";
+import { COMMUNES, COMMUNES_PAR_CANTON, APP, BAREMES } from "./config";
 import { calculerDeclaration } from "./engine";
 
 // ═══════════════════════════════════════════════
@@ -12,7 +12,7 @@ const SECTIONS = ["Identité", "Situation", "Revenus", "Déductions", "Fortune"]
 
 export default function Form() {
   const store = useStore();
-  const { section, setSection, setScreen, setCalcResult, getAll, get, setField, importFromDI, mode, b2bUser, clientDossier } = store;
+  const { section, setSection, setScreen, setCalcResult, getAll, get, setField, importFromDI, mode, b2bUser, clientDossier, canton } = store;
 
   // Import DI précédente
   const [importing, setImporting] = useState(false);
@@ -32,7 +32,8 @@ export default function Form() {
   const etat = get("etat_civil");
   const isDivorce = ["divorce","divorce_annee"].includes(etat);
 
-  const filtC = COMMUNES.filter(c => cq.length === 0 || c.toLowerCase().includes(cq.toLowerCase())).slice(0, 8);
+  const communesList = COMMUNES_PAR_CANTON[canton] || COMMUNES;
+  const filtC = communesList.filter(c => cq.length === 0 || c.toLowerCase().includes(cq.toLowerCase())).slice(0, 8);
 
   // Si dossier B2B ouvert avec nom client, pré-remplir identité
   useState(() => {
