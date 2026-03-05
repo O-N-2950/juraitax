@@ -65,26 +65,41 @@ function AjustementsAuto({ ajustements }) {
 }
 
 // ── Document manquant bloquant ────────────────────────────────────────
-function DocumentManquant({ doc }) {
+function DocumentManquant({ doc, isFirst }) {
   return (
-    <div style={{ padding:"16px", borderRadius:12, marginBottom:10,
-                  background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.35)" }}>
-      <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
-        <span style={{ fontSize:20 }}>🔴</span>
-        <div>
-          <div style={{ fontSize:13, fontWeight:700, color:"#F87171",
-                        fontFamily:"'Outfit',sans-serif", marginBottom:4 }}>
-            Document obligatoire : {doc.document}
+    <div style={{ borderRadius:14, marginBottom:12, overflow:"hidden",
+                  border:"1px solid rgba(248,113,113,0.35)",
+                  background:"rgba(248,113,113,0.05)" }}>
+      {isFirst && (
+        <div style={{ background:"rgba(0,0,0,0.15)", display:"flex",
+                      flexDirection:"column", alignItems:"center", padding:"12px 0 0" }}>
+          <video src="/pixou-search.mp4" autoPlay loop muted playsInline
+                 style={{ width:140, height:140, objectFit:"contain" }} />
+          <div style={{ fontSize:12, color:"#F87171", fontFamily:"'Outfit',sans-serif",
+                        fontStyle:"italic", paddingBottom:10, marginTop:-4 }}>
+            Pixou cherche vos documents…
           </div>
-          {doc.instruction_precise && (
-            <div style={{ fontSize:12, color:"#8B95A7", fontFamily:"'Outfit',sans-serif",
-                          lineHeight:1.6, marginBottom:6 }}>
-              {doc.instruction_precise}
-            </div>
-          )}
-          <div style={{ fontSize:11, color:"#F87171", fontStyle:"italic" }}>
-            ⛔ Calcul impossible sans ce document
+        </div>
+      )}
+      <div style={{ padding:"14px 16px" }}>
+        <div style={{ fontSize:11, color:"#F87171", fontFamily:"'Outfit',sans-serif",
+                      fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>
+          🔴 Document obligatoire manquant
+        </div>
+        <div style={{ fontSize:15, fontWeight:700, color:"#E8EDF2",
+                      fontFamily:"'Cormorant Garamond',serif", marginBottom:8 }}>
+          {doc.document}
+        </div>
+        {doc.instruction_precise && (
+          <div style={{ fontSize:12, color:"#8B95A7", fontFamily:"'Outfit',sans-serif",
+                        lineHeight:1.6, marginBottom:10 }}>
+            {doc.instruction_precise}
           </div>
+        )}
+        <div style={{ fontSize:11, color:"#F87171", fontStyle:"italic",
+                      padding:"6px 10px", background:"rgba(248,113,113,0.08)",
+                      borderRadius:6, display:"inline-block" }}>
+          ⛔ Pixou ne peut pas calculer sans ce document
         </div>
       </div>
     </div>
@@ -330,7 +345,7 @@ export function AdvisorScreen({ advisorData, lang = "fr", onComplete, setField, 
       <MessagePixou message={currentData?.message_client} />
 
       {/* Documents manquants BLOQUANTS */}
-      {docsBloquants.map(d => <DocumentManquant key={d.id} doc={d} />)}
+      {docsBloquants.map((d, i) => <DocumentManquant key={d.id} doc={d} isFirst={i===0} />)}
 
       {/* Alertes */}
       {alertes.filter(a => a.severite !== "error").map((a, i) => <Alerte key={i} alerte={a} />)}
