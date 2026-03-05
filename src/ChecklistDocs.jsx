@@ -38,7 +38,6 @@ const DOCS = () => ([
     category: { fr:"Identité & Situation", de:"Identität & Situation", en:"Identity & Situation" },
     docs: [
       { id:"di_prev",  req:false, icon:"📋", label:{ fr:"Déclaration 2024 (N-1)", de:"Steuererklärung 2024", en:"2024 Tax Return" },    hint:{ fr:"Identité extraite automatiquement par OCR", de:"Identität automatisch extrahiert", en:"Identity auto-extracted" } },
-      { id:"permis",   req:false, icon:"🪪", label:{ fr:"Carte d'identité / Permis", de:"Ausweis / Aufenthalt", en:"ID / Permit" },         hint:{ fr:"Si commune ou situation a changé", de:"Bei Änderung von Gemeinde/Status", en:"If situation has changed" } },
     ]
   },
   {
