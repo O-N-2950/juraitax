@@ -368,17 +368,27 @@ export function Loading() {
   return (
     <div style={{ minHeight:"100vh", background:S.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:40 }}>
       <GlobalStyles />
-      <div style={{ textAlign:"center", maxWidth:380 }}>
-        <div style={{ position:"relative", width:80, height:80, margin:"0 auto 32px" }}>
-          <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:`2px solid ${S.border}` }} />
-          <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:`2px solid transparent`, borderTop:`2px solid ${S.gold}`, animation:"spin 1s linear infinite" }} />
-          <div style={{ position:"absolute", inset:8, borderRadius:"50%", border:`1px solid ${S.border}` }} />
-          <div style={{ position:"absolute", inset:8, borderRadius:"50%", border:`1px solid transparent`, borderTop:`1px solid ${S.goldSoft}`, animation:"spin 0.6s linear infinite reverse" }} />
+      <div style={{ textAlign:"center", maxWidth:420 }}>
+
+        {/* Pixou animation */}
+        <div style={{ margin:"0 auto 24px", width:220, height:220, borderRadius:24,
+                      overflow:"hidden", background:"rgba(255,255,255,0.03)",
+                      border:"1px solid rgba(201,168,76,0.2)",
+                      boxShadow:"0 8px 40px rgba(201,168,76,0.1)" }}>
+          <video
+            src="/pixou-loading.mp4"
+            autoPlay loop muted playsInline
+            style={{ width:"100%", height:"100%", objectFit:"cover" }}
+          />
         </div>
 
-        <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, color:S.cream, fontWeight:300, marginBottom:24 }}>
-          {t("loading_step1")}
+        <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, color:S.cream, fontWeight:300, marginBottom:6 }}>
+          Pixou optimise votre déclaration…
         </h2>
+        <div style={{ fontSize:12, color:S.gold, fontFamily:"'Outfit',sans-serif",
+                      marginBottom:24, fontStyle:"italic" }}>
+          Chaque franc compte 🦆
+        </div>
 
         {steps.map((s, i) => (
           <div key={i} style={{
