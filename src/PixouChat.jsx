@@ -8,17 +8,25 @@ import { useState, useRef, useEffect } from "react";
 
 // ── Humeurs de Pixou — vidéos selon contexte ─────────────────────────
 const PIXOU_MOODS = {
-  salue:    "/pixou-welcome.mp4",   // Accueil, bonjour
-  cherche:  "/pixou-search.mp4",    // Document manquant, recherche
-  calcule:  "/pixou-loading.mp4",   // Réflexion, calcul
-  static:   "/pixou.png",           // Neutre (image fixe)
+  salue:     "/pixou-welcome.mp4",    // Accueil, bonjour
+  cherche:   "/pixou-search.mp4",     // Document manquant, recherche
+  calcule:   "/pixou-loading.mp4",    // Réflexion, calcul
+  question1: "/pixou-question1.png",  // Pixou pose une question (clin d'œil)
+  question2: "/pixou-question2.png",  // Pixou réfléchit sérieusement
+  static:    "/pixou.png",            // Neutre (image fixe)
 };
 
+// Alterne entre question1 et question2 pour varier
+let _questionToggle = false;
 function detectMoodPixou(text) {
   const l = (text || "").toLowerCase();
   if (/bonjour|bienvenu|salut|hello|hoi|ciao|olá/i.test(l)) return "salue";
   if (/document|manqu|besoin|relevé|attestation|facture|cherch/i.test(l)) return "cherche";
   if (/calcul|analys|optimis|vérifie|compar/i.test(l)) return "calcule";
+  if (/\?|comment|pourquoi|quand|où|avez-vous|est-ce|avez|possédez|percevez|avez-vous/i.test(l)) {
+    _questionToggle = !_questionToggle;
+    return _questionToggle ? "question1" : "question2";
+  }
   return "static";
 }
 
