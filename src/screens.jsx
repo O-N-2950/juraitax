@@ -101,6 +101,13 @@ export function Welcome() {
 
         {/* Logo / Hero */}
         <div className="fu1" style={{ textAlign:"center", marginBottom:36 }}>
+
+          {/* Pixou accueil */}
+          <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}>
+            <video src="/pixou-welcome.mp4" autoPlay loop muted playsInline
+                   style={{ width:160, height:160, objectFit:"contain" }} />
+          </div>
+
           <div style={{ fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.muted, fontFamily:"'Outfit',sans-serif", marginBottom:14 }}>
             {cantonLabel} · {t("app_year")}
           </div>
