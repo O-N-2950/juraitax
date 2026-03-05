@@ -547,6 +547,21 @@ export function Result() {
           </div>
         )}
 
+        {/* Pixou remboursement — si solde en faveur du client */}
+        {r?.soldeClient > 0 && (
+          <div className="fu" style={{ textAlign:"center", marginBottom:16 }}>
+            <img src="/pixou-remboursement.png" alt="Remboursement confirmé !"
+                 style={{ width:240, objectFit:"contain",
+                          animation:"pixouPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both" }} />
+            <style>{`
+              @keyframes pixouPop {
+                from { transform: scale(0.5) rotate(-10deg); opacity:0; }
+                to   { transform: scale(1) rotate(0deg);     opacity:1; }
+              }
+            `}</style>
+          </div>
+        )}
+
         <div className="fu1" style={{ padding:"28px", borderRadius:16, background:S.surface, border:`1px solid ${S.border}`, marginBottom:14, textAlign:"center" }}>
           <div style={{ fontSize:11, color:S.gold, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", fontFamily:"'Outfit',sans-serif", marginBottom:8 }}>
             {nomClient.trim() || "Contribuable"} · {data.commune} · {APP.year}
