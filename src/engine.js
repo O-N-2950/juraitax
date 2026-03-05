@@ -297,8 +297,13 @@ function calculImpotRevenuICC(revenuImposable, baremeMarital) {
  * @param {number} quotiteCommune - quotité de la commune (ex: 2.25)
  * @returns {number}
  */
+// CORRECTION BUG 05.03.2026 :
+// Le barème JU retourne l'impôt État (quotité 2.85 incluse).
+// La commune se calcule sur l'impôt SIMPLE = impotEtat / 2.85 × quotiteCommune
+const QUOTITE_ETAT_JU = 2.85;
 function calculImpotCommunalICC(impotEtatBase, quotiteCommune) {
-  return Arrondi.cinqCentimes(impotEtatBase * quotiteCommune);
+  const impotSimple = impotEtatBase / QUOTITE_ETAT_JU;
+  return Arrondi.cinqCentimes(impotSimple * quotiteCommune);
 }
 
 /**
