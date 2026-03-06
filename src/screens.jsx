@@ -5,7 +5,7 @@ import { APP, PRICING } from "./config";
 import { calculerDeclaration } from "./engine";
 import { useT } from "./i18n";
 import LangSelector from "./LangSelector";
-import { genererRapportFiscal } from "./RapportFiscal.js";
+import { genererRapportFiscal, genererRapportFiscalAvecPixou } from "./RapportFiscal.js";
 import { genererJustificatifs } from "./JustificatifsPDF.js";
 import { TrustBanner, TrustBlock, TrustFooter } from "./TrustBadges";
 import { AnimatedAmount, Confetti, CantonWatermark, FadeIn, SavingsBadge } from "./WowEffects";
@@ -652,7 +652,7 @@ export function Result() {
           <Btn style={{flex:1, minWidth:180}} onClick={() => alert("PDF DI-2025 en cours de génération…")}>
             📄 {t("result_download_pdf")}
           </Btn>
-          <Btn style={{flex:1, minWidth:180, background:"#1A1A2E", border:"1px solid #C9A84C"}} onClick={() => genererRapportFiscal({ data, result: r, lang, canton: cantonConfig?.canton || "JU", b2bFirm: isB2B ? b2bUser?.firm : null })}>
+          <Btn style={{flex:1, minWidth:180, background:"#1A1A2E", border:"1px solid #C9A84C"}} onClick={() => genererRapportFiscalAvecPixou({ data, result: r, lang, canton: cantonConfig?.canton || "JU", b2bFirm: isB2B ? b2bUser?.firm : null })}>
             📋 {t("result_download_rapport")}
           </Btn>
           <Btn style={{flex:1, minWidth:180, background:"#0F1623", border:"1px solid #1E2D45", color:"#8B95A7"}} onClick={() => genererJustificatifs({ data, result: r, lang, canton: cantonConfig?.canton || "JU" })}>

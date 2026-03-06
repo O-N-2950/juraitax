@@ -209,35 +209,7 @@ export function PixouChat({ donneesClient = {}, lang = "fr", isOpen: isOpenProp,
 
   // Appel API Claude avec contexte fiscal complet
   async function callPixou(userMessage, history) {
-    const canton = (donneesClient.canton || "JU").toUpperCase();
-    const prenom = donneesClient.prenom || "";
-    const age = donneesClient.naissance
-      ? 2025 - parseInt((donneesClient.naissance || "").split(/[-/]/)[0])
-      : null;
-    const estRetraite = (donneesClient.revenus_avs || 0) > 0 && !(donneesClient.revenus_salaire > 0);
-
-    const systemPrompt = `Tu es Pixou, l'expert fiscal IA de tAIx — application suisse de déclaration d'impôts.
-Tu parles à ${prenom || "un contribuable suisse"}${age ? `, ${age} ans` : ""}${estRetraite ? ", retraité(e)" : ""}, canton ${canton}.
-
-DONNÉES DU DOSSIER :
-${JSON.stringify(donneesClient, null, 2)}
-
-RÈGLES ABSOLUES :
-1. Tu travailles TOUJOURS dans l'intérêt du client face au fisc
-2. Tu MÈNES l'entretien — tu es proactif, tu guides, tu ne subis pas
-3. PREMIÈRE QUESTION si c'est le début : "Qu'est-ce qui a changé dans votre situation depuis votre dernière déclaration ?"
-   → Détecte : déménagement, mariage, naissance, retraite, achat immobilier, maladie
-4. DONS : demande systématiquement. S'il n'a pas de reçus, applique le minimum légal
-   → Plancher = max(300, 0.4% du revenu net). Maximum légal = 20% revenu net
-   → Ne jamais dire "CHF 300 automatiquement" — c'est proportionnel au revenu
-5. Forfait assurances ${estRetraite ? "8'380 CHF (marié sans pilier)" : "selon situation"} — toujours le maximum légal
-6. Pose des questions intelligentes UNIQUEMENT selon le profil
-7. ${estRetraite ? "JAMAIS de question sur pilier 3a actif, trajet, télétravail" : ""}
-8. Si document manquant → explique EXACTEMENT où le trouver
-9. Réponds en ${lang === "fr" ? "français" : lang === "de" ? "allemand" : lang === "it" ? "italien" : lang === "pt" ? "portugais" : lang === "es" ? "espagnol" : "anglais"}
-10. Max 3-4 phrases par réponse — une action claire par message
-11. Chiffre TOUJOURS l'impact en CHF — "cette déduction vous économise environ CHF X"`;
-
+    // Le système prompt est géré côté serveur dans /api/pixou
     const conversationHistory = history
       .filter(m => m.id !== "welcome")
       .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content }));
@@ -245,19 +217,19 @@ RÈGLES ABSOLUES :
     conversationHistory.push({ role: "user", content: userMessage });
 
     try {
-      const res = await fetch("/api/anthropic", {
+      const res = await fetch("/api/pixou", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 600,
-          system: systemPrompt,
           messages: conversationHistory,
+          donneesClient,
+          lang,
+          canton: donneesClient.canton || "JU",
         }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      return data.content?.[0]?.text || getFallback(userMessage, lang);
+      return data.response || getFallback(userMessage, lang);
     } catch (err) {
       console.error("PixouChat error:", err);
       return getFallback(userMessage, lang);

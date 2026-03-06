@@ -119,7 +119,27 @@ function fCHF(v) {
 }
 
 // ── GÉNÉRATEUR PRINCIPAL ────────────────────────────────────────────────
-export function genererRapportFiscal({ data, result, lang = "fr", canton = "JU", b2bFirm = null }) {
+// ── Rapport async avec raisonnement Pixou ────────────────────────────
+// Appelle /api/rapport-raisonnement puis génère le PDF enrichi
+export async function genererRapportFiscalAvecPixou({ data, result, conversationPixou = [], lang = "fr", canton = "JU", b2bFirm = null }) {
+  let raisonnement = null;
+  try {
+    const res = await fetch("/api/rapport-raisonnement", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ donneesClient: data, calcResult: result, conversationPixou, lang, canton }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      raisonnement = d.raisonnement;
+    }
+  } catch (e) {
+    console.warn("Raisonnement Pixou indisponible, rapport standard généré:", e.message);
+  }
+  return genererRapportFiscal({ data, result, lang, canton, b2bFirm, raisonnement });
+}
+
+export function genererRapportFiscal({ data, result, lang = "fr", canton = "JU", b2bFirm = null, raisonnement = null }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = 210;
   const M = 15; // margin
@@ -399,6 +419,63 @@ export function genererRapportFiscal({ data, result, lang = "fr", canton = "JU",
   doc.setFont("helvetica", "bold");
   doc.text("JurAI Tax · PEP's Swiss SA · admin@juraitax.ch", W - M, 286, { align: "right" });
   doc.text("WIN WIN Finance Group SARL · FINMA F01042365", W - M, 291, { align: "right" });
+
+  // ── SECTION RAISONNEMENT PIXOU (si disponible) ───────────────────────
+  if (raisonnement && raisonnement.decisions && raisonnement.decisions.length > 0 && y < 240) {
+    y += 4;
+    rect(M, y, CW, 7, [20, 30, 60]);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...GOLD);
+    doc.text("🦆 Raisonnement Pixou — Décisions personnalisées", M + 4, y + 5);
+    y += 10;
+
+    raisonnement.decisions.slice(0, 4).forEach((dec, i) => {
+      if (y > 248) return;
+      const alt = i % 2 === 0;
+      rect(M, y, CW, 18, alt ? [255,255,255] : LIGHT);
+      setFill(GOLD);
+      doc.rect(M, y, 1.5, 18, "F");
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...DARK);
+      doc.text(dec.titre || "", M + 5, y + 5);
+
+      if (dec.montant_chf) {
+        doc.setFontSize(8.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...GREEN);
+        doc.text(`−CHF ${Math.round(dec.montant_chf).toLocaleString("fr-CH")}`, W - M - 3, y + 5, { align: "right" });
+      }
+
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...GREY);
+      const lines = doc.splitTextToSize(dec.raisonnement || "", CW - 12);
+      doc.text(lines.slice(0, 1), M + 5, y + 10);
+
+      if (dec.base_legale) {
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 130, 180);
+        doc.text(dec.base_legale, M + 5, y + 15);
+      }
+
+      y += 19;
+    });
+
+    // Note expert Pixou
+    if (raisonnement.note_expert && y < 260) {
+      y += 3;
+      rect(M, y, CW, 14, [245, 248, 255]);
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(60, 80, 120);
+      const noteLines = doc.splitTextToSize(`💬 ${raisonnement.note_expert}`, CW - 10);
+      doc.text(noteLines.slice(0, 2), M + 5, y + 5);
+      y += 15;
+    }
+  }
 
   // ── TÉLÉCHARGEMENT ──────────────────────────────────────────────────────
   const filename = `JurAI_Tax_Rapport_${nom.replace(/\s+/g, "_")}_${new Date().getFullYear() - 1}.pdf`;
