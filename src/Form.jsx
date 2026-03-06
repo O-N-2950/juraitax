@@ -125,7 +125,7 @@ export default function Form() {
             <div style={{ padding:"20px", borderRadius:14, background:`linear-gradient(135deg,${T.card},${T.cardHi})`, border:`1px solid ${T.border}`, marginBottom:28, position:"relative", overflow:"hidden" }}>
               <div style={{ position:"absolute", top:-20, right:-20, width:100, height:100, borderRadius:"50%", background:T.goldGlow, pointerEvents:"none" }} />
 
-              <div style={{ fontSize:15, fontWeight:600, color:T.cream, fontFamily:"'Cormorant Garamond',serif", fontSize:20, marginBottom:6 }}>
+              <div style={{ fontWeight:600, color:T.cream, fontFamily:"'Cormorant Garamond',serif", fontSize:20, marginBottom:6 }}>
                 📂 Téléversez votre déclaration 2024
               </div>
               <p style={{ fontSize:12, color:T.textDim, lineHeight:1.5, marginBottom:14 }}>

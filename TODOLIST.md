@@ -1,65 +1,98 @@
-# tAIx — TODOLIST
-## Mis à jour : 05.03.2026
+# tAIx — TODO LIST — Mars 2026
+# PEP's Swiss SA · Mise à jour : 06.03.2026
+# ═══════════════════════════════════════════════════════
 
----
+## 🔴 CRITIQUE — Premiers clients (à faire MAINTENANT)
 
-## 🔴 URGENT — Avant tout client payant
+- [ ] **Vérifier variable ANTHROPIC_API_KEY sur Railway**
+      → Settings > Variables > ANTHROPIC_API_KEY (sans VITE_)
+      → Tester /api/health en prod pour confirmer
 
-- [ ] **Valider Neukomm 2025 sur guichet.jura.ch**
-  - Revenu imposable : 73'270 — Fortune : 454'000 — Commune : Bure — Catholique — Marié
-  - Comparer avec résultat engine : ~12'705 CHF total
+- [ ] **Tester flux complet Railway bout-en-bout**
+      → Upload certificat de salaire → OCR → Pixou chat → Calcul → Rapport PDF
+      → Vérifier que /api/pixou répond correctement
 
-- [ ] **Tester le nouveau flux sur Railway**
-  - Upload documents Neukomm → OCR → ALIX s'affiche avec optimisations auto
-  - Vérifier bouton "Calculer" bloqué si document manquant
-  - Vérifier CHF 300 dons appliqués automatiquement
+- [ ] **Vérifier que le rapport PDF génère bien la section Pixou**
+      → genererRapportFiscalAvecPixou() doit appeler /api/rapport-raisonnement
+      → Tester avec données Neukomm
 
-- [ ] **Suite de tests automatisés JU** (5 cas × résultats officiels)
-  - Écart toléré : 0 CHF — build bloqué si dépassement
+- [ ] **Valider solde client > 0 → Pixou remboursement s'affiche**
+      → Tester sur cas Neukomm (73'270 CHF revenu)
 
----
+## 🟠 IMPORTANT — Qualité prod
 
-## 🟡 Semaine prochaine
+- [ ] **Tester ErrorBoundary Pixou**
+      → Provoquer une erreur volontaire → vérifier écran de secours avec pixou-error.png
 
-- [ ] **Connecter AdvisorScreen ↔ donneesClient** (prop manquante pour dialogue interactif)
-  - Passer `donneesClient` depuis ChecklistDocs vers AdvisorScreen
+- [ ] **Vérifier /api/health en production**
+      → https://juraitax-app-production-f257.up.railway.app/api/health
+      → Doit retourner { status: "ok", apiKey: "présente ✓" }
 
-- [ ] **Tester ALIX sur profil Neukomm**
-  - Elle doit dire : "Je vois hypothèque 168'000 → relevé Raiffeisen obligatoire"
-  - Elle doit appliquer 8'380 assurances automatiquement
-  - Elle ne doit PAS demander de pilier 3a (rentiers)
+- [ ] **Intégration NE complète (2-3h)**
+      → Form.jsx : passer canton field au moteur
+      → Commune dropdown : afficher communes NE si canton=NE
+      → cantonDetector.js : configurer domaine NE
 
-- [ ] **Intégrer SubsidyWinWin.jsx** dans le flux ALIX
-  - Question subsides LAMal pour revenus < 60'000
+- [ ] **Stripe — métadonnées par application**
+      → Ajouter metadata: { app: "tAIx", canton: "JU" } dans chaque paiement
+      → Permet de distinguer les revenus par canton sur le dashboard Stripe
 
-- [ ] **Moteur fiscal JU — validation barème**
-  - Écart ~0.8% vs officiel sur commune revenu → affiner coefficients
+## 🟡 AMÉLIORATION — Expérience client
 
----
+- [ ] **Store Zustand — exposer getAll() dans App.jsx**
+      → PixouChat reçoit toutes les données OCR en temps réel
 
-## 🟢 Court terme
+- [ ] **Conversation Pixou → passée au rapport PDF**
+      → Stocker conversationPixou dans le store Zustand
+      → La passer à genererRapportFiscalAvecPixou()
 
-- [ ] **Cantons supplémentaires**
-  - VD, FR, VS — reverse-engineering Clic&Tax
-  - Domaines canton-spécifiques avec détection automatique
+- [ ] **Animation Pixou résultat positif**
+      → Si solde > 0 : pixou-remboursement.png avec animation pop
+      → ✅ Déjà codé — à vérifier en prod
 
-- [ ] **Mise à jour 2026** (prompt déjà prêt dans projet)
-  - Télécharger Clic&Tax 2026
-  - Comparer TarifNE_1, TarifNE_3, NEParameters, etc.
+- [ ] **Tester OCR multi-pages**
+      → Upload 3 documents → vérifier fusion correcte
+      → Tester pixou-ocr.png s'affiche pendant l'analyse
 
-- [ ] **Hébergement RGPD** — migrer Railway → Infomaniak avant clients tiers
+- [ ] **Dons — chiffrer l'économie dans le chat**
+      → Pixou dit : "Sans justificatif, j'applique CHF 308 → économie ~CHF 62"
 
-- [ ] **Intégration WIN WIN v2** — écosystème services financiers
+## 🟢 EXPANSION — Cantons
 
----
+- [ ] **Canton NE — intégration complète UI**
+      → 2-3h de travail (moteur validé, UI manquante)
 
-## ✅ FAIT cette session (05.03.2026)
+- [ ] **Canton BE — extraction barèmes PrivateTax**
+      → Prompt Claude Code prêt dans les notes
+      → ~5h de travail
 
-- [x] FiscalExpert.js — cerveau IA avec 12 règles raisonnement
-- [x] Moteur optimisation — forfaits automatiques (dons 300, entretien 20%, frais pro)
-- [x] Philosophie gravée : toujours dans l'intérêt du client
-- [x] AdvisorScreen réécrit — ALIX, documents bloquants, bouton désactivé
-- [x] ChecklistDocs câblé sur FiscalExpert (remplace FiscalAdvisor)
-- [x] Bug calculImpotCommunalICC corrigé dans engine.js
-- [x] Justification complète revenu imposable Neukomm 2025 (73'270 CHF)
-- [x] Confirmation code 530 = 2'121 CHF (document réel Raiffeisen, pas estimation)
+- [ ] **Berne — validation test cases**
+      → Valider 5+ cas avant déploiement prod
+
+## 📋 TECHNIQUE — Dette
+
+- [ ] **Code splitting Vite** (bundle 888KB → objectif <400KB)
+      → Dynamic import() pour RapportFiscal.js, FiscalExpert.js
+      → Améliore le temps de chargement initial
+
+- [ ] **Ajouter rate limiting sur /api/pixou**
+      → Max 20 messages / session pour limiter coûts API
+
+- [ ] **Logger les conversations Pixou** (analytics)
+      → Identifier les questions les plus posées
+      → Améliorer le prompt en continu
+
+## ✅ FAIT — Historique session
+
+- [x] Pixou mascotte — 9 humeurs (welcome/search/loading/question1/question2/static/error/remboursement/ocr)
+- [x] PixouChat — chatbot interactif branché sur /api/pixou
+- [x] Première question "qu'est-ce qui a changé ?" gravée
+- [x] Dons proportionnels au revenu (pas 300 CHF fixe)
+- [x] Pixou proactif — mène l'entretien
+- [x] Serveur Express 3 routes sécurisées (clé API jamais exposée)
+- [x] Rapport PDF avec raisonnement Pixou + bases légales
+- [x] ErrorBoundary React avec Pixou error
+- [x] Anti-crash process.on handlers
+- [x] Health check /api/health
+- [x] Build propre zéro erreur
+- [x] Carte d'identité supprimée du checklist documents

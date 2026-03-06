@@ -16,6 +16,20 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
 
+// ── Anti-crash — le serveur NE S'ARRÊTE JAMAIS ──────────────────────
+// Inspiré de WIN WIN v2 server/index.ts — Règle PEP's #1
+process.on('uncaughtException', (err) => {
+  console.error('🔴 [tAIx] UNCAUGHT EXCEPTION (serveur survit):', err?.message || err);
+  console.error(err?.stack?.split('\n').slice(0, 3).join('\n'));
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('🟡 [tAIx] UNHANDLED REJECTION (serveur survit):', reason?.message || reason);
+});
+process.on('SIGTERM', () => {
+  console.log('[tAIx] SIGTERM reçu — arrêt gracieux');
+  process.exit(0);
+});
+
 app.use(express.json({ limit: "50mb" }));
 
 // ── Helper appel Anthropic ────────────────────────────────────────────
@@ -228,6 +242,18 @@ IMPORTANT :
     console.error("[/api/rapport-raisonnement] Erreur:", err.message);
     res.status(502).json({ error: err.message });
   }
+});
+
+// ── Health check — Railway / monitoring ──────────────────────────────
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    app: "tAIx",
+    version: "2.0.0",
+    timestamp: new Date().toISOString(),
+    apiKey: ANTHROPIC_API_KEY ? "présente ✓" : "MANQUANTE ✗",
+    uptime: Math.round(process.uptime()) + "s",
+  });
 });
 
 // ── Servir le front Vite ──────────────────────────────────────────────
