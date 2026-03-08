@@ -5,7 +5,6 @@
 //  Mars 2026 — PEP's Swiss SA
 // ═══════════════════════════════════════════════════════════════════════
 
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -106,10 +105,6 @@ RÈGLES :
 
 // ── OCR principal ────────────────────────────────────────────────────
 export async function ocrDocument(file) {
-  if (!ANTHROPIC_API_KEY) {
-    return { _error: "API key manquante", _type: "autre" };
-  }
-
   const isPDF     = file.type === "application/pdf";
   const mediaType = isPDF ? "application/pdf" : (file.type || "image/jpeg");
   const base64    = await fileToBase64(file);

@@ -668,6 +668,14 @@ export function Result() {
               🔄 S'abonner CHF 49/an
             </Btn>
           )}
+          {/* ── Disclaimer légal obligatoire ─────────────────── */}
+          <div style={{ marginTop:16, padding:"12px 16px", borderRadius:10,
+                        background:"rgba(201,168,76,0.06)", border:"1px solid rgba(201,168,76,0.2)",
+                        fontSize:11, color:"rgba(200,185,150,0.7)", lineHeight:1.6,
+                        fontFamily:"'Outfit',sans-serif", textAlign:"center" }}>
+            ⚖️ <strong style={{color:"rgba(201,168,76,0.8)"}}>Estimation indicative</strong> — Ce calcul est établi sur la base des informations transmises et ne remplace pas l'avis d'un conseiller fiscal agréé. La décision de taxation de l'autorité fiscale compétente fait foi. tAIx · PEP's Swiss SA · Bellevue 7 · 2950 Courgenay
+          </div>
+
           <Btn variant="ghost" onClick={() => imprimerCopieContribuable({ data, result: r, lang, canton: cantonConfig?.canton||"JU" })}>
             🖨️ Copie contribuable
           </Btn>

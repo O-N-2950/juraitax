@@ -146,7 +146,6 @@ function Message({ msg, onAction }) {
 // ══════════════════════════════════════════════════════════════════════
 //  COMPOSANT PRINCIPAL — PixouChat
 // ══════════════════════════════════════════════════════════════════════
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 export function PixouChat({ donneesClient = {}, lang = "fr", isOpen: isOpenProp, onClose }) {
   const [isOpen, setIsOpen]       = useState(isOpenProp || false);

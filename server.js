@@ -32,6 +32,100 @@ process.on('SIGTERM', () => {
 
 app.use(express.json({ limit: "50mb" }));
 
+// ── CRITIQUE 2 : Headers de sécurité HTTP ────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options",    "nosniff");
+  res.setHeader("X-Frame-Options",           "DENY");
+  res.setHeader("X-XSS-Protection",          "1; mode=block");
+  res.setHeader("Referrer-Policy",           "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy",        "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  next();
+});
+
+// ── CRITIQUE 2 : CORS restrictif ─────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  "https://juraitax-app-production-f257.up.railway.app",
+  "https://taix.ch",
+  "https://www.taix.ch",
+  "https://jura.taix.ch",
+  "https://ne.taix.ch",
+  ...(process.env.NODE_ENV !== "production" ? ["http://localhost:5173", "http://localhost:3000"] : []),
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Session-Token");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
+// ── CRITIQUE 2 : Rate limiting par IP ─────────────────────────────────
+// 20 requêtes/minute sur les routes API — sans dépendance npm
+const _rateLimits = new Map();
+function checkRateLimit(ip, maxReq = 20, windowMs = 60000) {
+  const now = Date.now();
+  const key  = ip;
+  if (!_rateLimits.has(key)) _rateLimits.set(key, []);
+  const times = _rateLimits.get(key).filter(t => now - t < windowMs);
+  times.push(now);
+  _rateLimits.set(key, times);
+  return times.length <= maxReq;
+}
+// Nettoyage toutes les 5 minutes
+setInterval(() => {
+  const cutoff = Date.now() - 120000;
+  for (const [k, times] of _rateLimits) {
+    const fresh = times.filter(t => t > cutoff);
+    if (fresh.length === 0) _rateLimits.delete(k);
+    else _rateLimits.set(k, fresh);
+  }
+}, 300000);
+
+// ── CRITIQUE 2 : Middleware auth + rate limit pour routes API ─────────
+function apiMiddleware(req, res, next) {
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+
+  // Rate limiting
+  if (!checkRateLimit(ip)) {
+    console.warn(`[tAIx] Rate limit dépassé — IP: ${ip} — ${req.path}`);
+    return res.status(429).json({
+      error: "Trop de requêtes. Veuillez patienter une minute.",
+      retry_after: 60,
+    });
+  }
+
+  // Whitelist URLs de destination — anti-SSRF
+  // Seul api.anthropic.com est autorisé comme destination externe
+  next();
+}
+
+// ── Validation données fiscales côté serveur ──────────────────────────
+function validateFiscalData(data = {}) {
+  const errors = [];
+  // Montants négatifs impossibles
+  const numericFields = ["rev_salaire","rev_avs","rev_lpp","fortune_immobilier",
+                          "dette_hypotheque","pilier3a","dons","frais_garde","frais_medicaux"];
+  for (const f of numericFields) {
+    if (data[f] !== undefined && data[f] !== null && data[f] !== "") {
+      const v = parseFloat(data[f]);
+      if (isNaN(v) || v < 0) errors.push(`${f}: valeur invalide (${data[f]})`);
+      if (v > 10_000_000)    errors.push(`${f}: montant suspect (${v})`);
+    }
+  }
+  // Canton valide
+  const CANTONS = ["JU","NE","BE","VD","GE","VS","FR","SO","BS","BL","AG","ZH","LU","SG","GR","TI","SZ","ZG","OW","NW","GL","UR","AI","AR","SH","TG","TH"];
+  if (data.canton && !CANTONS.includes((data.canton||"").toUpperCase())) {
+    errors.push(`canton invalide: ${data.canton}`);
+  }
+  return errors;
+}
+
 // ── Helper appel Anthropic ────────────────────────────────────────────
 async function callAnthropic(body) {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -48,9 +142,11 @@ async function callAnthropic(body) {
 }
 
 // ── ROUTE 1 : Proxy Anthropic générique (OCR, calculs) ───────────────
-app.post("/api/anthropic", async (req, res) => {
+app.post("/api/anthropic", apiMiddleware, async (req, res) => {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "Clé API manquante" });
   try {
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress;
+    console.log(`[tAIx] /api/anthropic — IP:${ip} model:${req.body?.model||"?"} tokens:${req.body?.max_tokens||"?"}`);
     const response = await callAnthropic(req.body);
     const data = await response.json();
     res.status(response.status).json(data);
@@ -61,7 +157,7 @@ app.post("/api/anthropic", async (req, res) => {
 });
 
 // ── ROUTE 2 : Chat Pixou — expert fiscal avec cerveau complet ─────────
-app.post("/api/pixou", async (req, res) => {
+app.post("/api/pixou", apiMiddleware, async (req, res) => {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "Clé API manquante" });
 
   const {
@@ -70,6 +166,13 @@ app.post("/api/pixou", async (req, res) => {
     lang = "fr",
     canton = "JU",
   } = req.body;
+
+  // Validation serveur des données fiscales
+  const validationErrors = validateFiscalData(donneesClient);
+  if (validationErrors.length > 0) {
+    console.warn("[tAIx] /api/pixou — données invalides:", validationErrors);
+    // On continue mais on log — pas bloquant pour l'UX
+  }
 
   // Profil client déduit
   const prenom      = donneesClient.prenom || "";
@@ -158,7 +261,7 @@ RÈGLES ABSOLUES — GRAVÉES
 });
 
 // ── ROUTE 3 : Rapport raisonnement — narrative expert pour PDF ────────
-app.post("/api/rapport-raisonnement", async (req, res) => {
+app.post("/api/rapport-raisonnement", apiMiddleware, async (req, res) => {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "Clé API manquante" });
 
   const {

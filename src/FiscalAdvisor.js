@@ -6,7 +6,6 @@
 //  Mars 2026 — PEP's Swiss SA
 // ═══════════════════════════════════════════════════════════════════════
 
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 // ── Appel base de connaissances tAIx ─────────────────────────────────
 const KNOWLEDGE_URL = import.meta.env.VITE_KNOWLEDGE_URL || "";
@@ -120,10 +119,6 @@ export async function genererQuestionsIA(donneesOCR, storeData, lang = "fr") {
     if (kResult?.reponse) {
       knowledgeContext = kResult.reponse;
     }
-  }
-
-  if (!ANTHROPIC_API_KEY) {
-    return getQuestionsSecours(donneesPropres, lang);
   }
 
   try {

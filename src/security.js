@@ -15,7 +15,7 @@ export function injectCSP() {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
-    "connect-src 'self' https://api.anthropic.com https://api.stripe.com https://taix.ch https://*.railway.app https://*.infomaniak.com",
+    "connect-src 'self' https://api.stripe.com https://taix.ch https://*.railway.app https://*.infomaniak.com",
     "frame-src https://js.stripe.com https://hooks.stripe.com",          // Stripe iframes
     "object-src 'none'",
     "base-uri 'self'",

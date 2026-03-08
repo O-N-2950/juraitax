@@ -492,7 +492,6 @@ export function analyserDocumentsManquants(donneesClient) {
 // 5. APPEL PRINCIPAL — Expert IA
 // ─────────────────────────────────────────────────────────────────────
 
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 export async function consulterExpertFiscal({
   donneesClient,
@@ -509,11 +508,7 @@ export async function consulterExpertFiscal({
   // Pré-analyse locale (même si API indisponible)
   const analyse = analyserDocumentsManquants(donneesClient);
 
-  // Si pas d'API → fallback local intelligent
-  if (!ANTHROPIC_API_KEY) {
-    return fallbackExpert(donneesClient, analyse, lang);
-  }
-
+  // Si erreur réseau → fallback local intelligent
   try {
     const prompt = buildExpertPrompt(donneesClient, canton, histoireConversation, lang);
 
